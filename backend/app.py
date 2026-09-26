@@ -5,7 +5,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.core.config import DEFAULT_TELEMETRY_SAMPLES, LONG_RUN_MIN_LAPS
+from backend.core.config import CORS_ORIGINS, DEFAULT_TELEMETRY_SAMPLES, LONG_RUN_MIN_LAPS
 from backend.core.errors import DataUnavailableError, F1DataError
 from backend.services.analytics import lap_summary, long_run_overview, telemetry_for_lap, track_layout_for_session
 from backend.services.circuit_registry import official_circuit_url
@@ -31,9 +31,9 @@ app = FastAPI(title="F1 Analytics API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET"],
     allow_headers=["*"],
 )
 
