@@ -86,7 +86,11 @@ python -m backend.smoke_test_api   # end-to-end check against live F1 data (need
 
 cd frontend-next
 npm run lint && npm run typecheck && npm run build
+npm run test:e2e            # browser tests: builds the app and runs it against a mocked API
 ```
+
+The browser tests (`frontend-next/e2e/`) use Playwright; run `npx playwright install chromium`
+once before the first run.
 
 API responses are declared as Pydantic models in `backend/schemas.py`. After changing them,
 regenerate the OpenAPI schema and the frontend's TypeScript types (CI fails if either is stale):
@@ -96,7 +100,7 @@ python -m backend.export_openapi          # writes frontend-next/openapi.json
 cd frontend-next && npm run generate:api  # writes app/lib/api-types.ts
 ```
 
-CI (`.github/workflows/ci.yml`) runs the same backend and frontend checks on every push to
+CI (`.github/workflows/ci.yml`) runs the same backend, frontend and browser checks on every push to
 `main`/`dev` and on pull requests.
 
 ## Project layout

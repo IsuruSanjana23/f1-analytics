@@ -15,3 +15,5 @@ __pycache__/
 .env
 frontend-next/.env.local
 .DS_Store
+frontend-next/test-results/
+frontend-next/playwright-report/
