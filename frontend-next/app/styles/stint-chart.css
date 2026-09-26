@@ -1,0 +1,234 @@
+/* Long Runs: stint overlay chart + grouped run rows (replaces the lap-column table). */
+
+.stint-chart-card {
+  border: 1px solid var(--line);
+  background: #10161e;
+  padding: 18px 20px 20px;
+}
+
+.stint-chart-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px 10px;
+  color: #8d9aa8;
+  font:
+    600 10px ui-monospace,
+    Consolas,
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stint-chart-plot {
+  border: 1px solid var(--line);
+  background-color: #0a0c10;
+  background-image:
+    linear-gradient(#ffffff05 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff05 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.stint-chart-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font:
+    11px ui-monospace,
+    Consolas,
+    monospace;
+  fill: #8e9ba8;
+}
+
+.stint-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 14px 2px 0;
+  color: #8d9aa8;
+  font:
+    500 11px ui-monospace,
+    Consolas,
+    monospace;
+  text-transform: uppercase;
+}
+
+.stint-chart-legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.stint-chart-legend i {
+  width: 14px;
+  height: 3px;
+  background: #8d9aa8;
+}
+
+.stint-chart-legend .legend-end {
+  margin-left: auto;
+}
+
+.stint-group-count {
+  color: #8d9aa8;
+  font:
+    500 10px ui-monospace,
+    Consolas,
+    monospace;
+  text-transform: uppercase;
+}
+
+.stint-run-list {
+  display: grid;
+  gap: 0;
+}
+
+.stint-run-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 16px 0;
+  border-bottom: 1px solid #1d2530;
+}
+
+.stint-run-row:last-child {
+  border-bottom: 0;
+}
+
+.stint-run-id {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+  width: 200px;
+  min-width: 0;
+}
+
+.stint-run-id strong {
+  display: block;
+  font:
+    700 16px/1.1 ui-monospace,
+    Consolas,
+    monospace;
+}
+
+.stint-run-id small {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #8d9aa8;
+  font:
+    500 10px ui-monospace,
+    Consolas,
+    monospace;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.stint-run-rank {
+  display: inline-grid;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: #161e28;
+  color: #c7d0da;
+  font:
+    700 11px ui-monospace,
+    Consolas,
+    monospace;
+}
+
+.stint-run-bar {
+  width: 4px;
+  height: 32px;
+  flex: none;
+}
+
+.stint-run-chips {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.stint-run-stats {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0;
+  width: 360px;
+  border-left: 1px solid var(--line);
+}
+
+.stint-run-stats > div {
+  flex: 1;
+  padding: 0 14px;
+  border-left: 1px solid #1d2530;
+}
+
+.stint-run-stats > div:first-child {
+  border-left: 0;
+}
+
+.stint-run-stats span {
+  display: block;
+  margin-bottom: 5px;
+  color: #8d9aa8;
+  font:
+    700 9px ui-monospace,
+    Consolas,
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stint-run-stats b {
+  font:
+    600 13px ui-monospace,
+    Consolas,
+    monospace;
+  color: var(--text);
+}
+
+.stint-run-stats .run-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 0;
+  border-left: 0;
+}
+
+@media (max-width: 1120px) {
+  .stint-run-row {
+    flex-wrap: wrap;
+  }
+
+  .stint-run-id {
+    width: 100%;
+  }
+
+  .stint-run-stats {
+    width: 100%;
+    border-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .stint-run-stats > div {
+    flex: 1 1 45%;
+    border-left: 0;
+    border-top: 1px solid #1d2530;
+    padding: 10px 0 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .stint-chart-card {
+    padding: 14px 14px 16px;
+  }
+
+  .stint-run-row {
+    gap: 12px;
+  }
+}

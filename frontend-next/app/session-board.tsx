@@ -1,11 +1,12 @@
+import type { Schemas } from "./lib/api";
 import { teamColor } from "./team-colors";
 
-type FastestLap = { position: number; driver: string; driver_number: string | null; team: string | null; compound: string | null; lap_time_seconds: number | null; gap_to_fastest: number | null; sector_1_seconds: number | null; sector_2_seconds: number | null; sector_3_seconds: number | null; top_speed: number | null; lap_number: number | null };
-export type SessionBoardData = { fastest_laps: FastestLap[] } | null;
+export type SessionBoardData = Schemas["SessionAnalysis"] | null;
 
 const time = (value: number | null) => value == null ? "--" : `${Math.floor(value / 60)}:${(value % 60).toFixed(3).padStart(6, "0")}`;
 
-export default function SessionBoard({ data, selectedDrivers, onTelemetry }: { data: SessionBoardData; selectedDrivers: string[]; onTelemetry: () => void }) {
+export default function SessionBoard({ data, error, selectedDrivers, onTelemetry }: { data: SessionBoardData; error?: string; selectedDrivers: string[]; onTelemetry: () => void }) {
+  if (error) return <p className="chart-empty" role="alert">Timing classification unavailable: {error}</p>;
   if (!data) return <p className="chart-empty">Loading timing classification...</p>;
   const fastest = data.fastest_laps[0];
   const gaps = data.fastest_laps.map((lap) => lap.gap_to_fastest).filter((value): value is number => value != null);

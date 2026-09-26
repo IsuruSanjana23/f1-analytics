@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from backend.app import app
 
-
 CHECKS = [
     ("health", "/api/health", {}, ["status"]),
     ("seasons", "/api/seasons", {}, ["seasons"]),

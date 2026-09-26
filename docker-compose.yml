@@ -1,0 +1,33 @@
+# Local or single-host deployment: docker compose up --build
+# Then open http://localhost:3000 (API on http://localhost:8000/api).
+#
+# When hosting elsewhere, set both URLs to the public addresses, e.g.
+#   NEXT_PUBLIC_API_URL=https://api.example.com/api F1_CORS_ORIGINS=https://f1.example.com docker compose up --build
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      F1_CORS_ORIGINS: ${F1_CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      F1_SESSION_CACHE_SIZE: ${F1_SESSION_CACHE_SIZE:-8}
+    volumes:
+      - fastf1-cache:/app/cache
+    restart: unless-stopped
+
+  web:
+    build:
+      context: frontend-next
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  fastf1-cache:

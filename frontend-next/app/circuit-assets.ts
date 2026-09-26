@@ -1,31 +1,42 @@
+// Keyed by normalized event name (see normalizeEventName).
 const circuitAssets: Record<string, string> = {
-  "Australian Grand Prix": "melbourne-2.svg",
-  "Chinese Grand Prix": "shanghai-1.svg",
-  "Japanese Grand Prix": "suzuka-2.svg",
-  "Bahrain Grand Prix": "bahrain-1.svg",
-  "Saudi Arabian Grand Prix": "jeddah-1.svg",
-  "Miami Grand Prix": "miami-1.svg",
-  "Monaco Grand Prix": "monaco-6.svg",
-  "Spanish Grand Prix": "madring-1.svg",
-  "Barcelona-Catalunya Grand Prix": "catalunya-6.svg",
-  "Canadian Grand Prix": "montreal-6.svg",
-  "Austrian Grand Prix": "spielberg-3.svg",
-  "British Grand Prix": "silverstone-8.svg",
-  "Belgian Grand Prix": "spa-francorchamps-4.svg",
-  "Hungarian Grand Prix": "hungaroring-3.svg",
-  "Dutch Grand Prix": "zandvoort-5.svg",
-  "Italian Grand Prix": "monza-7.svg",
-  "Azerbaijan Grand Prix": "baku-1.svg",
-  "Singapore Grand Prix": "marina-bay-4.svg",
-  "United States Grand Prix": "austin-1.svg",
-  "Mexico City Grand Prix": "mexico-city-3.svg",
-  "Sao Paulo Grand Prix": "interlagos-2.svg",
-  "Las Vegas Grand Prix": "las-vegas-1.svg",
-  "Qatar Grand Prix": "lusail-1.svg",
-  "Abu Dhabi Grand Prix": "yas-marina-2.svg",
+  "australian grand prix": "melbourne-2.svg",
+  "chinese grand prix": "shanghai-1.svg",
+  "japanese grand prix": "suzuka-2.svg",
+  "bahrain grand prix": "bahrain-1.svg",
+  "saudi arabian grand prix": "jeddah-1.svg",
+  "miami grand prix": "miami-1.svg",
+  "monaco grand prix": "monaco-6.svg",
+  "barcelona-catalunya grand prix": "catalunya-6.svg",
+  "canadian grand prix": "montreal-6.svg",
+  "austrian grand prix": "spielberg-3.svg",
+  "styrian grand prix": "spielberg-3.svg",
+  "british grand prix": "silverstone-8.svg",
+  "70th anniversary grand prix": "silverstone-8.svg",
+  "belgian grand prix": "spa-francorchamps-4.svg",
+  "hungarian grand prix": "hungaroring-3.svg",
+  "dutch grand prix": "zandvoort-5.svg",
+  "italian grand prix": "monza-7.svg",
+  "azerbaijan grand prix": "baku-1.svg",
+  "singapore grand prix": "marina-bay-4.svg",
+  "united states grand prix": "austin-1.svg",
+  "mexico city grand prix": "mexico-city-3.svg",
+  "mexican grand prix": "mexico-city-3.svg",
+  "sao paulo grand prix": "interlagos-2.svg",
+  "brazilian grand prix": "interlagos-2.svg",
+  "las vegas grand prix": "las-vegas-1.svg",
+  "qatar grand prix": "lusail-1.svg",
+  "abu dhabi grand prix": "yas-marina-2.svg",
 };
 
-export function circuitAssetForRace(race: string) {
-  const asset = circuitAssets[race];
+/** Lower-case and strip accents so "São Paulo Grand Prix" matches "sao paulo grand prix". */
+function normalizeEventName(name: string) {
+  return name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+export function circuitAssetForRace(race: string, year: number) {
+  const name = normalizeEventName(race);
+  // The Spanish Grand Prix moved from Barcelona to Madrid in 2026.
+  const asset = name === "spanish grand prix" ? (year >= 2026 ? "madring-1.svg" : "catalunya-6.svg") : circuitAssets[name];
   return asset ? `/circuits/${asset}` : null;
 }

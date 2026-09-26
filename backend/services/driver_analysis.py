@@ -1,5 +1,5 @@
-import pandas as pd
 
+from backend.core.errors import NotFoundError
 from backend.services.analytics import driver_laps, long_run_pace
 from backend.services.fastf1_client import event_summary, load_session, session_summary
 from backend.utils.filters import valid_push_laps, valid_timed_laps
@@ -7,11 +7,11 @@ from backend.utils.formatting import rounded_or_none, seconds_or_none, value_or_
 
 
 def analyze_driver(year, race, session_name, driver):
-    session = load_session(year, race, session_name, telemetry=True)
+    session = load_session(year, race, session_name)
     laps = session.laps.pick_drivers(driver)
 
     if laps.empty:
-        raise ValueError(f"No laps found for driver {driver}")
+        raise NotFoundError(f"No laps found for driver {driver}")
 
     return {
         "driver": driver_summary(session, laps, driver),
