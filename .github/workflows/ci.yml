@@ -75,3 +75,11 @@ jobs:
           name: playwright-traces
           path: frontend-next/test-results/
           retention-days: 7
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f backend/Dockerfile -t f1-api .
+      - run: docker build -t f1-web frontend-next

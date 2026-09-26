@@ -37,6 +37,21 @@ npm install
 npm run dev                           # http://localhost:3000
 ```
 
+### Docker
+
+```bash
+docker compose up --build             # web on http://localhost:3000, API on http://localhost:8000
+```
+
+FastF1 downloads are kept in the `fastf1-cache` volume. The frontend's API URL is baked in at
+build time, so when hosting on other addresses set both before building:
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.example.com/api \
+F1_CORS_ORIGINS=https://f1.example.com \
+docker compose up --build
+```
+
 ## API
 
 | Endpoint | Description |
