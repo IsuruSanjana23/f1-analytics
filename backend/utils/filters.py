@@ -25,7 +25,7 @@ def valid_timed_laps(laps):
     filtered = laps[laps["LapTime"].notna()]
 
     if "Deleted" in filtered.columns:
-        filtered = filtered[filtered["Deleted"] != True]
+        filtered = filtered[~filtered["Deleted"].eq(True)]
 
     return filtered
 

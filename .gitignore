@@ -7,3 +7,11 @@ __pycache__/
 .tmp-f1db/
 *.log
 *.tsbuildinfo
+.idea/
+.vscode/
+.stitch-review/
+.pytest_cache/
+.ruff_cache/
+.env
+frontend-next/.env.local
+.DS_Store

@@ -7,9 +7,9 @@ from fastapi.responses import JSONResponse
 
 from backend.core.config import DEFAULT_TELEMETRY_SAMPLES, LONG_RUN_MIN_LAPS
 from backend.core.errors import DataUnavailableError, F1DataError
-from backend.services.comparisons import compare_laps, compare_long_runs, find_lap
-from backend.services.circuit_registry import official_circuit_url
 from backend.services.analytics import lap_summary, long_run_overview, telemetry_for_lap, track_layout_for_session
+from backend.services.circuit_registry import official_circuit_url
+from backend.services.comparisons import compare_laps, compare_long_runs, find_lap
 from backend.services.driver_analysis import analyze_driver
 from backend.services.fastf1_client import (
     get_available_seasons,
@@ -22,7 +22,6 @@ from backend.services.session_analysis import (
     analyze_session,
     available_drivers,
 )
-
 
 logger = logging.getLogger(__name__)
 

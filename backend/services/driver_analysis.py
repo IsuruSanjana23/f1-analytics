@@ -1,4 +1,3 @@
-import pandas as pd
 
 from backend.core.errors import NotFoundError
 from backend.services.analytics import driver_laps, long_run_pace

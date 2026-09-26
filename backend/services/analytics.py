@@ -131,7 +131,7 @@ def top_speeds_by_lap(laps):
         windows = driver_laps.dropna(subset=["LapStartTime", "Time"])
         starts = np.searchsorted(times, windows["LapStartTime"].to_numpy(), side="left")
         ends = np.searchsorted(times, windows["Time"].to_numpy(), side="right")
-        for driver, lap_number, start, end in zip(windows["Driver"], windows["LapNumber"], starts, ends):
+        for driver, lap_number, start, end in zip(windows["Driver"], windows["LapNumber"], starts, ends, strict=True):
             if end > start:
                 speeds[(driver, lap_number)] = value_or_none(np.nanmax(values[start:end]))
 
@@ -182,7 +182,7 @@ def top_speeds(laps, speeds=None):
     timed = valid_timed_laps(laps)
     best = {}
 
-    for driver, lap_number in zip(timed["Driver"], timed["LapNumber"]):
+    for driver, lap_number in zip(timed["Driver"], timed["LapNumber"], strict=True):
         lap_speed = speeds.get((driver, lap_number))
         if lap_speed is not None and (driver not in best or lap_speed > best[driver]["top_speed"]):
             best[driver] = {

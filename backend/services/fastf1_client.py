@@ -11,7 +11,6 @@ from backend.core.config import CACHE_DIR, DEFAULT_START_YEAR, SESSION_CACHE_SIZ
 from backend.core.errors import DataUnavailableError, InvalidRequestError, NotFoundError
 from backend.utils.formatting import value_or_none
 
-
 SESSION_ALIASES = {
     "practice 1": "FP1",
     "fp1": "FP1",
@@ -146,7 +145,7 @@ def _load_session_cached(year, race, normalized_session):
     # its own reparse of the session.
     try:
         session.load(laps=True, telemetry=True, weather=True, messages=False)
-        session.laps  # FastF1 logs load failures and only raises on access.
+        _ = session.laps  # FastF1 logs load failures and only raises on access.
     except NoLapDataError as error:
         raise NotFoundError(f"No lap data available for {race} {year} {normalized_session}") from error
     except DataNotLoadedError as error:
