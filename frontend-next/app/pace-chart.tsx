@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 
-type Lap = { lap_number: number; lap_time_seconds: number | null; compound: string; stint: number; tyre_life: number; top_speed?: number; classification: string; deleted?: boolean };
+import type { Lap } from "./lib/api";
+
 const colors: Record<string, string> = { SOFT: "#ff6984", MEDIUM: "#e6cf57", HARD: "#dee5e7", INTERMEDIATE: "#58c493", WET: "#5c9fe8" };
 const format = (n: number | null | undefined) => n == null || !Number.isFinite(n) ? "--" : `${Math.floor(n / 60)}:${(n % 60).toFixed(3).padStart(6, "0")}`;
 
-export default function PaceChart({ laps, selectedLap, onSelect }: { laps: Lap[]; selectedLap: number; onSelect: (n: number) => void; min?: number; max?: number }) {
+export default function PaceChart({ laps, selectedLap, onSelect }: { laps: Lap[]; selectedLap: number; onSelect: (n: number) => void }) {
   const [mode, setMode] = useState("pace");
   const [clean, setClean] = useState(false);
   const [hover, setHover] = useState<number | null>(null);

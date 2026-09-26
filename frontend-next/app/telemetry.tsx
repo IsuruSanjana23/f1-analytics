@@ -1,11 +1,12 @@
 "use client";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import "./telemetry.css";
 import "./telemetry-route-nav.css";
 import "./telemetry-scale.css";
 import { valueAt, signed, type Channel } from "./telemetry-values";
 import { fastestLap, type TimedLap } from "./fastest-lap";
 import { circuitAssetForRace } from "./circuit-assets";
+import { fetchCached, useApi } from "./lib/use-api";
 
 type Sample = { distance: number; speed: number | null; throttle: number | null; brake: boolean | null; rpm: number | null; gear: number | null; drs: number | null; x?: number | null; y?: number | null };
 type Lap = TimedLap & { compound: string };
@@ -30,6 +31,13 @@ function normalizeTelemetry(rows: Sample[]) {
     rows: ordered.map((row) => ({ ...row, distance: (row.distance - start) / trackLength })),
     trackLength,
   };
+}
+
+async function getJson(api: string, path: string, signal?: AbortSignal) {
+  const response = await fetch(`${api}${path}`, { signal });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Telemetry request failed");
+  return data;
 }
 
 function median(values: number[]) {
@@ -82,7 +90,8 @@ function TelemetryTrackMap({ entries, layout, fallbackAsset, officialCircuitUrl,
   onPlaybackRateChange: (rate: number) => void;
 }) {
   const fallbackPathRef = useRef<SVGPathElement>(null);
-  const [fallbackPath, setFallbackPath] = useState("");
+  const [fallback, setFallback] = useState<{ asset: string; path: string } | null>(null);
+  const fallbackPath = fallback && fallback.asset === fallbackAsset ? fallback.path : "";
   const [fallbackMarker, setFallbackMarker] = useState<{ x: number; y: number } | null>(null);
   const reference = entries[0];
   const selectedLapCoordinates = reference?.rows.filter((row) => Number.isFinite(row.x) && Number.isFinite(row.y)) || [];
@@ -110,16 +119,16 @@ function TelemetryTrackMap({ entries, layout, fallbackAsset, officialCircuitUrl,
   };
 
   useEffect(() => {
-    if (!fallbackAsset) { setFallbackPath(""); return; }
+    if (!fallbackAsset) return;
     let active = true;
     fetch(fallbackAsset)
       .then((response) => response.ok ? response.text() : "")
       .then((svg) => {
         if (!active) return;
         const path = new DOMParser().parseFromString(svg, "image/svg+xml").querySelector("path");
-        setFallbackPath(path?.getAttribute("d") || "");
+        setFallback({ asset: fallbackAsset, path: path?.getAttribute("d") || "" });
       })
-      .catch(() => { if (active) setFallbackPath(""); });
+      .catch(() => { if (active) setFallback({ asset: fallbackAsset, path: "" }); });
     return () => { active = false; };
   }, [fallbackAsset]);
 
@@ -151,15 +160,15 @@ function TelemetryTrackMap({ entries, layout, fallbackAsset, officialCircuitUrl,
       <path ref={fallbackPathRef} d={fallbackPath} fill="none" stroke="#dce8e7" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
       {fallbackMarker && entries.map((entry, index) => <g key={entry.driver} transform={`translate(${index * 7},${index * -7})`}><circle cx={fallbackMarker.x} cy={fallbackMarker.y} r="13" fill="#0d1117" stroke={entry.color} strokeWidth="4" /><circle cx={fallbackMarker.x} cy={fallbackMarker.y} r="5" fill={entry.color} /></g>)}
       <text x="250" y="480" textAnchor="middle">{displayDistance(cursor)} m</text>
-    </svg> : fallbackAsset ? <div className="track-map-fallback"><img src={fallbackAsset} alt="Circuit layout fallback" /><small>Loading circuit layout</small></div> : <div className="track-map-unavailable">Track position data is unavailable for this session.</div>}
+    </svg> : fallbackAsset ? <div className="track-map-fallback">
+      {/* eslint-disable-next-line @next/next/no-img-element -- local SVG placeholder, nothing to optimise */}
+      <img src={fallbackAsset} alt="Circuit layout fallback" /><small>Loading circuit layout</small></div> : <div className="track-map-unavailable">Track position data is unavailable for this session.</div>}
     <div className="track-map-controls"><button type="button" className="map-play" onClick={() => onPlayingChange(!playing)} title={playing ? "Pause cursor playback" : "Play cursor playback"}>{playing ? "||" : ">"}</button><input aria-label="Telemetry playback position" type="range" min="0" max="1000" value={Math.round(cursor * 1000)} onChange={(event) => onCursorChange(Number(event.target.value) / 1000)} /><select aria-label="Playback speed" value={playbackRate} onChange={(event) => onPlaybackRateChange(Number(event.target.value))}><option value="0.5">0.5x</option><option value="1">1x</option><option value="2">2x</option><option value="4">4x</option></select></div>
   </aside>;
 }
 
 export default function Telemetry({ api, year, race, session, drivers, lap, onRemoveDriver }: { api: string; year: string; race: string; session: string; drivers: string[]; lap?: number; onRemoveDriver?: (driver: string) => void }) {
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [trackLayout, setTrackLayout] = useState<TrackPoint[]>([]);
-  const [officialCircuitUrl, setOfficialCircuitUrl] = useState<string | null>(null);
   const [reference, setReference] = useState("");
   const [difference, setDifference] = useState(false);
   const [activeSector, setActiveSector] = useState<string>("all");
@@ -192,19 +201,13 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
     })()
     : null;
 
-  async function get(path: string, signal?: AbortSignal) {
-    const response = await fetch(`${api}${path}`, { signal });
-    const data = await response.json();
-    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Telemetry request failed");
-    return data;
-  }
   async function fetchLap(driver: string, number: number, version: number, signal?: AbortSignal) {
     const request = (versions.current[driver] || 0) + 1;
     versions.current[driver] = request;
     setEntries(old => old.map(e => e.driver === driver ? { ...e, lap: number, rows: [], trackLength: 0, loading: true, error: "" } : e));
     try {
       const query = new URLSearchParams({ year, race, session, driver, lap: String(number), telemetry_samples: "1000" });
-      const result = await get(`/lap-telemetry?${query}`, signal);
+      const result = await getJson(api, `/lap-telemetry?${query}`, signal);
       if (generation.current !== version || versions.current[driver] !== request || signal?.aborted) return;
       const normalized = normalizeTelemetry(result.telemetry);
       setEntries(old => old.map(e => e.driver === driver ? { ...e, rows: normalized.rows, trackLength: normalized.trackLength, loading: false, error: normalized.rows.length ? "" : "No telemetry for this lap." } : e));
@@ -217,17 +220,9 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
   const previousContext = useRef("");
   const previousCodes = useRef<string[]>([]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setTrackLayout([]);
-    setOfficialCircuitUrl(null);
-    const query = new URLSearchParams({ year, race, session });
-    fetch(`${api}/track-layout?${query}`, { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => { if (!controller.signal.aborted) { setTrackLayout(Array.isArray(data?.points) ? data.points : []); setOfficialCircuitUrl(typeof data?.official_circuit_url === "string" ? data.official_circuit_url : null); } })
-      .catch(() => { if (!controller.signal.aborted) { setTrackLayout([]); setOfficialCircuitUrl(null); } });
-    return () => controller.abort();
-  }, [api, year, race, session]);
+  const layout = useApi<{ points?: TrackPoint[]; official_circuit_url?: string | null }>(`${api}/track-layout?${new URLSearchParams({ year, race, session })}`);
+  const trackLayout = Array.isArray(layout.data?.points) ? layout.data.points : [];
+  const officialCircuitUrl = typeof layout.data?.official_circuit_url === "string" ? layout.data.official_circuit_url : null;
 
   useEffect(() => {
     if (!playing) return;
@@ -235,14 +230,31 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
     return () => window.clearInterval(timer);
   }, [playing, playbackRate]);
 
+  // Loads a newly selected driver's laps, then telemetry for the requested (or fastest) lap.
+  // An effect event so it always sees the current props without re-running the effect.
+  const loadDriver = useEffectEvent(async (driver: string, isReference: boolean, contextChanged: boolean, version: number, signal: AbortSignal) => {
+    try {
+      const result = await fetchCached<{ laps: Lap[] }>(`${api}/driver-analysis?${new URLSearchParams({ year, race, session, driver })}`);
+      if (signal.aborted || generation.current !== version) return;
+      const laps = result.laps.filter((l) => l.lap_time_seconds != null);
+      const saved = new URLSearchParams(window.location.search);
+      const requested = Number(saved.get(`lap_${driver}`)) || (contextChanged && isReference ? lap : undefined);
+      const selected = laps.find(l => l.lap_number === requested) || fastestLap(laps);
+      setEntries(old => old.map(e => e.driver === driver ? { ...e, laps, lap: selected?.lap_number || 0, loading: !!selected, error: selected ? "" : "No timed laps." } : e));
+      if (selected) await fetchLap(driver, selected.lap_number, version, signal);
+    } catch (error) {
+      if (!signal.aborted && generation.current === version) setEntries(old => old.map(e => e.driver === driver ? { ...e, loading: false, error: error instanceof Error ? error.message : "Session unavailable" } : e));
+    }
+  });
+
   useEffect(() => {
     const controller = new AbortController();
-    const version = ++generation.current;
+    const generationRef = generation;
+    const version = ++generationRef.current;
     const codes = driverKey.split(",").filter(Boolean);
     // A session/context switch invalidates every driver's data; adding or removing
     // a driver within the same session only needs to touch the drivers that changed.
     const contextChanged = previousContext.current !== contextKey;
-    const saved = new URLSearchParams(window.location.search);
 
     if (contextChanged) {
       setZoom([0, 1]); setCursor(0); setDrag(null); setHover(null); setActiveSector("all");
@@ -260,26 +272,12 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
     previousContext.current = contextKey;
     previousCodes.current = codes;
 
-    newCodes.forEach(async (driver) => {
-      const index = codes.indexOf(driver);
-      try {
-        const result = await get(`/driver-analysis?${new URLSearchParams({ year, race, session, driver })}`, controller.signal);
-        if (controller.signal.aborted || generation.current !== version) return;
-        const laps: Lap[] = result.laps.filter((l: Lap) => l.lap_time_seconds != null);
-        const requested = Number(saved.get(`lap_${driver}`)) || (contextChanged && index === 0 ? lap : undefined);
-        const selected = laps.find(l => l.lap_number === requested) || fastestLap(laps);
-        setEntries(old => old.map(e => e.driver === driver ? { ...e, laps, lap: selected?.lap_number || 0, loading: !!selected, error: selected ? "" : "No timed laps." } : e));
-        if (selected) await fetchLap(driver, selected.lap_number, version, controller.signal);
-      } catch (error) {
-        if (!controller.signal.aborted && generation.current === version) setEntries(old => old.map(e => e.driver === driver ? { ...e, loading: false, error: error instanceof Error ? error.message : "Session unavailable" } : e));
-      }
-    });
-    return () => { controller.abort(); generation.current++; };
-  }, [api, year, race, session, driverKey]);
+    newCodes.forEach((driver) => void loadDriver(driver, codes.indexOf(driver) === 0, contextChanged, version, controller.signal));
+    return () => { controller.abort(); generationRef.current++; };
+  }, [contextKey, driverKey]);
 
   const left = zoom[0] * distance, right = zoom[1] * distance;
   const x = (d: number) => 64 + (d - left) / Math.max(0.000001, right - left) * 770;
-  const nearest = (rows: Sample[]) => rows.reduce<Sample | undefined>((best, r) => !best || Math.abs(r.distance - cursor) < Math.abs(best.distance - cursor) ? r : best, undefined);
   function pointer(event: React.PointerEvent<SVGSVGElement>) {
     const svg = event.currentTarget;
     const p = svg.createSVGPoint(); p.x = event.clientX; p.y = event.clientY;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import "./long-run-controls.css";
 import "./stint-chart.css";
 
@@ -22,24 +22,27 @@ function degradation(laps: LongRunLap[]) {
 
 const CHART = { left: 70, right: 1000, top: 20, bottom: 310, axisY: 332, captionY: 356 };
 
-export default function LongRunAnalysis({ data }: { data: LongRunData }) {
+function defaultLaps(run: LongRun) { return run.laps.filter((lap) => lap.default_included).map((lap) => lap.lap_number); }
+
+// Remount (via `key`) when the underlying request changes so lap edits reset.
+export default function LongRunAnalysis({ data, error }: { data: LongRunData; error?: string }) {
+  // Only lap selections the user has edited are stored; others use the API default.
   const [selectedByRun, setSelectedByRun] = useState<Record<string, number[]>>({});
   const [visibleTyres, setVisibleTyres] = useState<string[]>([]);
   const [removedRunIds, setRemovedRunIds] = useState<string[]>([]);
   const [xMode, setXMode] = useState<"tyre" | "lap">("tyre");
-  useEffect(() => { setSelectedByRun(Object.fromEntries((data?.runs || []).map((run) => [run.run_id, run.laps.filter((lap) => lap.default_included).map((lap) => lap.lap_number)]))); setVisibleTyres([]); setRemovedRunIds([]); }, [data]);
   const compounds = useMemo(() => Array.from(new Set((data?.runs || []).map((run) => run.compound))).sort(), [data]);
   const colorByRunId = useMemo(() => Object.fromEntries((data?.runs || []).map((run, index) => [run.run_id, RUN_COLORS[index % RUN_COLORS.length]])), [data]);
-  const calculated = useMemo(() => (data?.runs || []).map((run) => { const included = run.laps.filter((lap) => (selectedByRun[run.run_id] || []).includes(lap.lap_number)); return { ...run, included, averagePace: average(included), dropoff: degradation(included) }; }), [data, selectedByRun]);
+  const calculated = useMemo(() => (data?.runs || []).map((run) => { const chosen = selectedByRun[run.run_id] ?? defaultLaps(run); const included = run.laps.filter((lap) => chosen.includes(lap.lap_number)); return { ...run, included, averagePace: average(included), dropoff: degradation(included) }; }), [data, selectedByRun]);
   const groups = useMemo(() => compounds.filter((compound) => !visibleTyres.length || visibleTyres.includes(compound)).map((compound) => { const compoundRuns = calculated.filter((run) => run.compound === compound); const runs = compoundRuns.filter((run) => !removedRunIds.includes(run.run_id)).sort((a, b) => (a.averagePace ?? Infinity) - (b.averagePace ?? Infinity)); return { compound, runs, hiddenCount: compoundRuns.length - runs.length, best: runs.find((run) => run.averagePace != null)?.averagePace || null, maxLaps: Math.max(0, ...runs.map((run) => run.laps.length)) }; }), [calculated, compounds, removedRunIds, visibleTyres]);
   const tyreOrder = useMemo(() => groups.filter((group) => group.best != null).sort((a, b) => (a.best || 0) - (b.best || 0)), [groups]);
   const chartRuns = useMemo(() => groups.flatMap((group) => group.runs), [groups]);
-  const toggleLap = (runId: string, lapNumber: number) => setSelectedByRun((current) => { const selected = current[runId] || []; return { ...current, [runId]: selected.includes(lapNumber) ? selected.filter((lap) => lap !== lapNumber) : [...selected, lapNumber] }; });
-  const resetRun = (run: LongRun) => setSelectedByRun((current) => ({ ...current, [run.run_id]: run.laps.filter((lap) => lap.default_included).map((lap) => lap.lap_number) }));
+  const toggleLap = (run: LongRun, lapNumber: number) => setSelectedByRun((current) => { const selected = current[run.run_id] ?? defaultLaps(run); return { ...current, [run.run_id]: selected.includes(lapNumber) ? selected.filter((lap) => lap !== lapNumber) : [...selected, lapNumber] }; });
+  const resetRun = (run: LongRun) => setSelectedByRun((current) => { const next = { ...current }; delete next[run.run_id]; return next; });
   const restoreCompound = (compound: string) => setRemovedRunIds((current) => current.filter((runId) => !calculated.some((run) => run.compound === compound && run.run_id === runId)));
 
   const xValue = (lap: LongRunLap) => xMode === "tyre" ? (lap.tyre_life ?? 0) : lap.lap_number;
-  const chartLaps = useMemo(() => chartRuns.flatMap((run) => run.laps.filter((lap) => Number.isFinite(lap.lap_time_seconds)).map((lap) => ({ run, lap }))), [chartRuns, xMode]);
+  const chartLaps = chartRuns.flatMap((run) => run.laps.filter((lap) => Number.isFinite(lap.lap_time_seconds)).map((lap) => ({ run, lap })));
   const xs = chartLaps.map(({ lap }) => xValue(lap));
   const ys = chartLaps.map(({ lap }) => lap.lap_time_seconds);
   const minX = xs.length ? Math.min(...xs) : 0; const maxX = xs.length ? Math.max(...xs, minX + 1) : 1;
@@ -50,12 +53,13 @@ export default function LongRunAnalysis({ data }: { data: LongRunData }) {
   const yTicks = Array.from({ length: 5 }, (_, i) => minY - padY + (maxY - minY + 2 * padY) * i / 4);
   const xTickCount = Math.min(8, Math.max(2, Math.round(maxX - minX) + 1));
   const xTicks = Array.from(new Set(Array.from({ length: xTickCount }, (_, i) => Math.round(minX + (maxX - minX) * i / (xTickCount - 1)))));
-  const runPaths = useMemo(() => chartRuns.map((run) => {
+  const runPaths = chartRuns.map((run) => {
     const points = run.laps.filter((lap) => Number.isFinite(lap.lap_time_seconds)).slice().sort((a, b) => xValue(a) - xValue(b));
     const path = points.map((lap, index) => `${index === 0 ? "M" : "L"}${plotX(xValue(lap)).toFixed(1)},${plotY(lap.lap_time_seconds).toFixed(1)}`).join(" ");
     return { run, path, points };
-  }), [chartRuns, xMode, minX, maxX, minY, maxY]);
+  });
 
+  if (error) return <p className="chart-empty" role="alert">{error}</p>;
   if (!data) return <p className="chart-empty">Loading long-run comparison...</p>;
   if (!data.runs.length) return <p className="chart-empty">No runs with at least {data.min_laps} representative laps are available for these drivers.</p>;
   return <div className="long-run-analysis longrun-workspace">
@@ -86,7 +90,7 @@ export default function LongRunAnalysis({ data }: { data: LongRunData }) {
         <div className="stint-run-list">
           {group.runs.map((run, index) => { const first = run.laps[0]?.lap_number; const last = run.laps.at(-1)?.lap_number; return <div className="stint-run-row" key={run.run_id}>
             <div className="stint-run-id"><span className="stint-run-rank" style={{ background: index === 0 ? colorByRunId[run.run_id] : undefined, color: index === 0 ? "#071210" : undefined }}>{run.averagePace == null ? "-" : index + 1}</span><span className="stint-run-bar" style={{ background: colorByRunId[run.run_id] }}></span><div><strong>{run.driver}</strong><small>Stint {run.stint} &middot; {first && last ? `L${first}-L${last}` : "--"}</small></div></div>
-            <div className="stint-run-chips">{run.laps.map((lap) => { const included = run.included.some((value) => value.lap_number === lap.lap_number); return <button type="button" key={lap.lap_number} className={`lap-toggle ${included ? "included" : "excluded"}`} onClick={() => toggleLap(run.run_id, lap.lap_number)} title={lap.exclusion_reason || "Included in average"}><b>L{lap.lap_number}</b><span>{time(lap.lap_time_seconds)}</span></button>; })}</div>
+            <div className="stint-run-chips">{run.laps.map((lap) => { const included = run.included.some((value) => value.lap_number === lap.lap_number); return <button type="button" key={lap.lap_number} className={`lap-toggle ${included ? "included" : "excluded"}`} onClick={() => toggleLap(run, lap.lap_number)} title={lap.exclusion_reason || "Included in average"}><b>L{lap.lap_number}</b><span>{time(lap.lap_time_seconds)}</span></button>; })}</div>
             <div className="stint-run-stats">
               <div><span>Average</span><b className="pace-value">{time(run.averagePace)}</b></div>
               <div><span>Gap</span><b>{run.averagePace == null ? "-" : index ? `+${((run.averagePace || 0) - (group.best || 0)).toFixed(3)}s` : "Best"}</b></div>

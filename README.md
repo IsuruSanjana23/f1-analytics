@@ -4,11 +4,11 @@ Formula 1 session analytics built on [FastF1](https://github.com/theOehrly/Fast-
 driver lap breakdowns, long-run (race pace) comparison and lap-vs-lap telemetry overlays.
 
 - **Backend**: FastAPI service (`backend/`) that loads sessions through FastF1 and serves analysis as JSON.
-- **Frontend**: Next.js 14 app (`frontend-next/`) that consumes the API.
+- **Frontend**: Next.js 16 / React 19 app (`frontend-next/`) that consumes the API.
 
 ## Getting started
 
-Requirements: Python 3.11+ and Node.js 20+.
+Requirements: Python 3.11+ and Node.js 20.9+.
 
 ### Backend
 
@@ -20,8 +20,12 @@ uvicorn backend.app:app --reload      # http://127.0.0.1:8000, docs at /docs
 ```
 
 The first request for a session downloads it from the F1 live-timing API, which can take a while.
-FastF1 caches downloads in `cache/fastf1/`, and loaded sessions are kept in memory
-(`F1_SESSION_CACHE_SIZE`, default 8).
+FastF1 caches downloads in `cache/fastf1/`.
+
+| Environment variable | Default | Purpose |
+|---|---|---|
+| `F1_SESSION_CACHE_SIZE` | `8` | Loaded sessions kept in memory |
+| `F1_CORS_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated browser origins allowed to call the API; set this to your frontend's URL when deploying |
 
 ### Frontend
 

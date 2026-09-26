@@ -5,7 +5,8 @@ export type SessionBoardData = { fastest_laps: FastestLap[] } | null;
 
 const time = (value: number | null) => value == null ? "--" : `${Math.floor(value / 60)}:${(value % 60).toFixed(3).padStart(6, "0")}`;
 
-export default function SessionBoard({ data, selectedDrivers, onTelemetry }: { data: SessionBoardData; selectedDrivers: string[]; onTelemetry: () => void }) {
+export default function SessionBoard({ data, error, selectedDrivers, onTelemetry }: { data: SessionBoardData; error?: string; selectedDrivers: string[]; onTelemetry: () => void }) {
+  if (error) return <p className="chart-empty" role="alert">Timing classification unavailable: {error}</p>;
   if (!data) return <p className="chart-empty">Loading timing classification...</p>;
   const fastest = data.fastest_laps[0];
   const gaps = data.fastest_laps.map((lap) => lap.gap_to_fastest).filter((value): value is number => value != null);
