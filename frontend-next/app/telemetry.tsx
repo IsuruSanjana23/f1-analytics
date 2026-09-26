@@ -188,7 +188,7 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
   const baseline = activeEntries.find(e => e.driver === reference) || activeEntries[0];
   const distance = 1;
   const trackLength = median(activeEntries.map((entry) => entry.trackLength));
-  const fallbackAsset = circuitAssetForRace(race);
+  const fallbackAsset = circuitAssetForRace(race, Number(year));
   const displayDistance = (progress: number) => Math.round(progress * trackLength);
   const times = entries.map(e => e.laps.find(l => l.lap_number === e.lap)?.lap_time_seconds).filter((n): n is number => n != null);
   const best = times.length ? Math.min(...times) : 0;
