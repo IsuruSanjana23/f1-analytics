@@ -70,14 +70,16 @@ def compare_long_runs(
             "median_pace_seconds": rounded_or_none(
                 second_run["median_pace_seconds"] - first_run["median_pace_seconds"]
             ),
-            "pace_dropoff_per_lap": rounded_or_none(
-                second_run["pace_dropoff_per_lap"] - first_run["pace_dropoff_per_lap"]
-            )
-            if second_run["pace_dropoff_per_lap"] is not None
-            and first_run["pace_dropoff_per_lap"] is not None
-            else None,
+            "pace_dropoff_per_lap": optional_delta(first_run, second_run, "pace_dropoff_per_lap"),
+            "tyre_degradation_per_lap": optional_delta(first_run, second_run, "tyre_degradation_per_lap"),
         },
     }
+
+
+def optional_delta(first, second, key):
+    if first[key] is None or second[key] is None:
+        return None
+    return rounded_or_none(second[key] - first[key])
 
 
 def find_lap(laps, driver, lap_number):

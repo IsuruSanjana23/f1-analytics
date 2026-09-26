@@ -6,17 +6,30 @@ import "./stint-chart.css";
 
 type LongRunLap = { lap_number: number; lap_time_seconds: number; tyre_life: number | null; default_included: boolean; exclusion_reason: string | null };
 type LongRun = { run_id: string; driver: string; stint: number; compound: string; laps: LongRunLap[] };
-export type LongRunData = { runs: LongRun[]; min_laps: number } | null;
+export type LongRunData = { runs: LongRun[]; min_laps: number; fuel_correction_per_lap?: number } | null;
 
 const RUN_COLORS = ["#42ddd1", "#FF8000", "#E8002D", "#3671C6", "#00D2BE", "#B6BABD", "#229971", "#FF87BC"];
 
 function time(value: number | null | undefined) { return value == null || !Number.isFinite(value) ? "-" : `${Math.floor(value / 60)}:${(value % 60).toFixed(3).padStart(6, "0")}`; }
 function average(laps: LongRunLap[]) { return laps.length ? laps.reduce((sum, lap) => sum + lap.lap_time_seconds, 0) / laps.length : null; }
-function degradation(laps: LongRunLap[]) {
+const EXCLUSION_LABELS: Record<string, string> = {
+  slower_than_107_percent_of_stint_best: "Excluded: over 107% of the stint's best lap (cool-down or aborted lap)",
+  slower_than_stint_trend: "Excluded: well off the stint's pace trend (likely traffic)",
+  faster_than_stint_trend: "Excluded: well ahead of the stint's pace trend (likely a tow)",
+};
+
+/**
+ * Fuel-corrected seconds lost per lap of tyre age (least squares), matching the API:
+ * each lap gets back the time it gained from burning fuel since the stint began.
+ */
+function degradation(laps: LongRunLap[], fuelPerLap: number) {
   if (laps.length < 3) return null;
-  const meanX = (laps.length - 1) / 2; const meanY = average(laps) || 0;
-  const numerator = laps.reduce((sum, lap, index) => sum + (index - meanX) * (lap.lap_time_seconds - meanY), 0);
-  const denominator = laps.reduce((sum, _, index) => sum + (index - meanX) ** 2, 0);
+  const firstLap = Math.min(...laps.map((lap) => lap.lap_number));
+  const points = laps.map((lap) => ({ x: lap.tyre_life ?? lap.lap_number, y: lap.lap_time_seconds + fuelPerLap * (lap.lap_number - firstLap) }));
+  const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+  const meanY = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+  const numerator = points.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0);
+  const denominator = points.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
   return denominator ? numerator / denominator : null;
 }
 
@@ -33,7 +46,7 @@ export default function LongRunAnalysis({ data, error }: { data: LongRunData; er
   const [xMode, setXMode] = useState<"tyre" | "lap">("tyre");
   const compounds = useMemo(() => Array.from(new Set((data?.runs || []).map((run) => run.compound))).sort(), [data]);
   const colorByRunId = useMemo(() => Object.fromEntries((data?.runs || []).map((run, index) => [run.run_id, RUN_COLORS[index % RUN_COLORS.length]])), [data]);
-  const calculated = useMemo(() => (data?.runs || []).map((run) => { const chosen = selectedByRun[run.run_id] ?? defaultLaps(run); const included = run.laps.filter((lap) => chosen.includes(lap.lap_number)); return { ...run, included, averagePace: average(included), dropoff: degradation(included) }; }), [data, selectedByRun]);
+  const calculated = useMemo(() => (data?.runs || []).map((run) => { const chosen = selectedByRun[run.run_id] ?? defaultLaps(run); const included = run.laps.filter((lap) => chosen.includes(lap.lap_number)); return { ...run, included, averagePace: average(included), dropoff: degradation(included, data?.fuel_correction_per_lap ?? 0) }; }), [data, selectedByRun]);
   const groups = useMemo(() => compounds.filter((compound) => !visibleTyres.length || visibleTyres.includes(compound)).map((compound) => { const compoundRuns = calculated.filter((run) => run.compound === compound); const runs = compoundRuns.filter((run) => !removedRunIds.includes(run.run_id)).sort((a, b) => (a.averagePace ?? Infinity) - (b.averagePace ?? Infinity)); return { compound, runs, hiddenCount: compoundRuns.length - runs.length, best: runs.find((run) => run.averagePace != null)?.averagePace || null, maxLaps: Math.max(0, ...runs.map((run) => run.laps.length)) }; }), [calculated, compounds, removedRunIds, visibleTyres]);
   const tyreOrder = useMemo(() => groups.filter((group) => group.best != null).sort((a, b) => (a.best || 0) - (b.best || 0)), [groups]);
   const chartRuns = useMemo(() => groups.flatMap((group) => group.runs), [groups]);
@@ -90,11 +103,11 @@ export default function LongRunAnalysis({ data, error }: { data: LongRunData; er
         <div className="stint-run-list">
           {group.runs.map((run, index) => { const first = run.laps[0]?.lap_number; const last = run.laps.at(-1)?.lap_number; return <div className="stint-run-row" key={run.run_id}>
             <div className="stint-run-id"><span className="stint-run-rank" style={{ background: index === 0 ? colorByRunId[run.run_id] : undefined, color: index === 0 ? "#071210" : undefined }}>{run.averagePace == null ? "-" : index + 1}</span><span className="stint-run-bar" style={{ background: colorByRunId[run.run_id] }}></span><div><strong>{run.driver}</strong><small>Stint {run.stint} &middot; {first && last ? `L${first}-L${last}` : "--"}</small></div></div>
-            <div className="stint-run-chips">{run.laps.map((lap) => { const included = run.included.some((value) => value.lap_number === lap.lap_number); return <button type="button" key={lap.lap_number} className={`lap-toggle ${included ? "included" : "excluded"}`} onClick={() => toggleLap(run, lap.lap_number)} title={lap.exclusion_reason || "Included in average"}><b>L{lap.lap_number}</b><span>{time(lap.lap_time_seconds)}</span></button>; })}</div>
+            <div className="stint-run-chips">{run.laps.map((lap) => { const included = run.included.some((value) => value.lap_number === lap.lap_number); return <button type="button" key={lap.lap_number} className={`lap-toggle ${included ? "included" : "excluded"}`} onClick={() => toggleLap(run, lap.lap_number)} title={lap.exclusion_reason ? EXCLUSION_LABELS[lap.exclusion_reason] ?? lap.exclusion_reason : "Included in average"}><b>L{lap.lap_number}</b><span>{time(lap.lap_time_seconds)}</span></button>; })}</div>
             <div className="stint-run-stats">
               <div><span>Average</span><b className="pace-value">{time(run.averagePace)}</b></div>
               <div><span>Gap</span><b>{run.averagePace == null ? "-" : index ? `+${((run.averagePace || 0) - (group.best || 0)).toFixed(3)}s` : "Best"}</b></div>
-              <div><span>Per lap</span><b className={run.dropoff != null && run.dropoff < 0 ? "gain" : undefined}>{run.dropoff == null ? "-" : `${run.dropoff >= 0 ? "+" : ""}${run.dropoff.toFixed(3)}s`}</b></div>
+              <div title="Seconds lost per lap of tyre age, corrected for fuel burn"><span>Tyre deg</span><b className={run.dropoff != null && run.dropoff < 0 ? "gain" : undefined}>{run.dropoff == null ? "-" : `${run.dropoff >= 0 ? "+" : ""}${run.dropoff.toFixed(3)}s`}</b></div>
               <div><span>Laps used</span><b>{run.included.length}/{run.laps.length}</b></div>
               <div className="run-actions"><button type="button" className="reset-laps" onClick={() => resetRun(run)}>Reset</button><button type="button" className="remove-run" onClick={() => setRemovedRunIds((current) => [...current, run.run_id])} aria-label={`Remove ${run.driver} stint ${run.stint} from the ${group.compound} view`} title={`Remove this ${group.compound} row`}>×</button></div>
             </div>

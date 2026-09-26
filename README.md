@@ -25,6 +25,7 @@ FastF1 caches downloads in `cache/fastf1/`.
 | Environment variable | Default | Purpose |
 |---|---|---|
 | `F1_SESSION_CACHE_SIZE` | `8` | Loaded sessions kept in memory |
+| `F1_FUEL_CORRECTION_S_PER_LAP` | `0.055` | Fuel-burn lap-time gain used to correct tyre degradation |
 | `F1_CORS_ORIGINS` | `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated browser origins allowed to call the API; set this to your frontend's URL when deploying |
 
 ### Frontend
@@ -56,6 +57,19 @@ npm run dev                           # http://localhost:3000
 Sessions accept `FP1`, `FP2`, `FP3`, `SQ`, `SS`, `S`, `Q`, `R` (or names such as `Practice 1`).
 Errors return `{"detail": "..."}` with `400` for invalid input, `404` when the event, session,
 driver or lap doesn't exist, and `503` when F1 timing data can't be fetched.
+
+### How the analysis works
+
+- **Long runs** group laps by driver, stint and compound (pit in/out laps removed). A lap is excluded
+  from the stint average when it is slower than 107% of the stint's best lap (cool-down or aborted
+  laps), or when it sits more than max(1 s, 3 x robust spread) off a robust (Theil-Sen) trend of lap
+  time against tyre age, which catches traffic and tow laps without penalising normal degradation.
+  Excluded laps are still returned with a reason, and the frontend lets you toggle them back in.
+- **Tyre degradation** (`tyre_degradation_per_lap`) is the slope of lap time against tyre age after
+  adding back the fuel-burn gain of 0.055 s per lap since the start of the stint
+  (`F1_FUEL_CORRECTION_S_PER_LAP`). `pace_dropoff_per_lap` is the uncorrected slope against lap number.
+- **Qualifying** attempts are tagged with their segment (`Q1`-`Q3`, or `SQ1`-`SQ3` for sprint
+  qualifying) when FastF1 can split the session, and `segments` ranks each driver's best lap per segment.
 
 The CLI in `backend/main.py` prints a session analysis as JSON:
 

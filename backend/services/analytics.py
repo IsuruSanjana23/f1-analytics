@@ -1,7 +1,13 @@
 import numpy as np
 import pandas as pd
 
-from backend.core.config import LONG_RUN_MAX_SLOWER_THAN_FASTEST_PCT, LONG_RUN_MIN_LAPS
+from backend.core.config import (
+    FUEL_CORRECTION_SECONDS_PER_LAP,
+    LONG_RUN_MAX_SLOWER_THAN_FASTEST_PCT,
+    LONG_RUN_MIN_LAPS,
+    LONG_RUN_OUTLIER_MAD_MULTIPLIER,
+    LONG_RUN_OUTLIER_MIN_SECONDS,
+)
 from backend.utils.filters import (
     classify_lap,
     long_run_candidate_laps,
@@ -213,6 +219,62 @@ def tyre_summary(laps):
     return summaries
 
 
+def theil_sen(x, y):
+    """Robust linear fit: median of pairwise slopes, median intercept."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    i, j = np.triu_indices(len(x), k=1)
+    dx = x[j] - x[i]
+    valid = dx != 0
+    slope = float(np.median((y[j] - y[i])[valid] / dx[valid])) if valid.any() else 0.0
+    return slope, float(np.median(y - slope * x))
+
+
+def stint_x(group):
+    """Tyre age for each lap, falling back to lap number when tyre life is missing."""
+    tyre_life = group["TyreLife"] if "TyreLife" in group.columns else pd.Series(index=group.index, dtype=float)
+    return tyre_life.astype(float).fillna(group["LapNumber"].astype(float))
+
+
+def long_run_exclusions(group):
+    """Map excluded laps (by DataFrame index) to a reason; representative laps are absent.
+
+    1. Laps slower than 107% of the stint best are cool-down / aborted laps.
+    2. The rest are compared with a robust (Theil-Sen) trend of lap time against
+       tyre age, so natural degradation isn't mistaken for traffic. Laps off the
+       trend by more than max(1 s, 3 x MAD-based sigma) are traffic or tow laps.
+    """
+    seconds = group["LapTime"].dt.total_seconds()
+    cooldown = seconds > seconds.min() * LONG_RUN_MAX_SLOWER_THAN_FASTEST_PCT
+    reasons = dict.fromkeys(seconds.index[cooldown], "slower_than_107_percent_of_stint_best")
+
+    candidates = ~cooldown
+    if candidates.sum() < 4:
+        return reasons
+
+    x = stint_x(group)[candidates]
+    y = seconds[candidates]
+    slope, intercept = theil_sen(x, y)
+    residuals = y - (intercept + slope * x)
+    sigma = 1.4826 * float(np.median(np.abs(residuals - np.median(residuals))))
+    threshold = max(LONG_RUN_OUTLIER_MIN_SECONDS, LONG_RUN_OUTLIER_MAD_MULTIPLIER * sigma)
+    reasons.update(dict.fromkeys(residuals.index[residuals > threshold], "slower_than_stint_trend"))
+    reasons.update(dict.fromkeys(residuals.index[residuals < -threshold], "faster_than_stint_trend"))
+    return reasons
+
+
+def tyre_degradation(group):
+    """Fuel-corrected seconds lost per lap of tyre age (least squares), or None."""
+    if len(group) < 3:
+        return None
+    laps_run = group["LapNumber"].astype(float) - float(group["LapNumber"].min())
+    corrected = group["LapTime"].dt.total_seconds() + FUEL_CORRECTION_SECONDS_PER_LAP * laps_run
+    x = stint_x(group).to_numpy()
+    if np.ptp(x) == 0:
+        return None
+    return float(np.polyfit(x, corrected.to_numpy(), 1)[0])
+
+
 def long_run_pace(laps, min_laps=LONG_RUN_MIN_LAPS):
     runs = []
 
@@ -220,22 +282,17 @@ def long_run_pace(laps, min_laps=LONG_RUN_MIN_LAPS):
         ["Driver", "Stint", "Compound"], dropna=True
     ):
         group = group.sort_values("LapNumber")
-        fastest = group["LapTime"].min().total_seconds()
-        pace_limit = fastest * LONG_RUN_MAX_SLOWER_THAN_FASTEST_PCT
-
-        used = group[group["LapTime"].dt.total_seconds() <= pace_limit].copy()
-        excluded = group[group["LapTime"].dt.total_seconds() > pace_limit].copy()
+        reasons = long_run_exclusions(group)
+        used = group.drop(index=list(reasons))
 
         if len(used) < min_laps:
             continue
 
         lap_seconds = used["LapTime"].dt.total_seconds()
         tyre_life = used["TyreLife"].dropna()
-        degradation = None
+        raw_dropoff = None
         if len(used) >= 3:
-            x = used["LapNumber"].astype(float).to_numpy()
-            y = lap_seconds.to_numpy()
-            degradation = float(np.polyfit(x, y, 1)[0])
+            raw_dropoff = float(np.polyfit(used["LapNumber"].astype(float).to_numpy(), lap_seconds.to_numpy(), 1)[0])
 
         runs.append(
             {
@@ -248,32 +305,26 @@ def long_run_pace(laps, min_laps=LONG_RUN_MIN_LAPS):
                 "median_pace_seconds": rounded_or_none(lap_seconds.median()),
                 "best_lap_seconds": rounded_or_none(lap_seconds.min()),
                 "worst_lap_seconds": rounded_or_none(lap_seconds.max()),
-                "pace_dropoff_per_lap": rounded_or_none(degradation),
+                # Raw trend of lap time vs lap number (includes the fuel-burn gain).
+                "pace_dropoff_per_lap": rounded_or_none(raw_dropoff),
+                # Fuel-corrected trend of lap time vs tyre age.
+                "tyre_degradation_per_lap": rounded_or_none(tyre_degradation(used)),
                 "tyre_life_start": value_or_none(tyre_life.min()) if not tyre_life.empty else None,
                 "tyre_life_end": value_or_none(tyre_life.max()) if not tyre_life.empty else None,
                 "laps_used": [value_or_none(lap) for lap in used["LapNumber"].tolist()],
                 "laps_excluded": [
-                    {
-                        "lap_number": value_or_none(lap.get("LapNumber")),
-                        "reason": "slower_than_107_percent_of_stint_best",
-                    }
-                    for _, lap in excluded.iterrows()
+                    {"lap_number": value_or_none(group.at[index, "LapNumber"]), "reason": reason}
+                    for index, reason in sorted(reasons.items(), key=lambda item: group.at[item[0], "LapNumber"])
                 ],
                 "laps": [
                     {
                         "lap_number": value_or_none(lap.get("LapNumber")),
                         "lap_time_seconds": seconds_or_none(lap.get("LapTime")),
                         "tyre_life": value_or_none(lap.get("TyreLife")),
-                        "default_included": bool(
-                            lap.get("LapTime").total_seconds() <= pace_limit
-                        ),
-                        "exclusion_reason": (
-                            None
-                            if lap.get("LapTime").total_seconds() <= pace_limit
-                            else "slower_than_107_percent_of_stint_best"
-                        ),
+                        "default_included": index not in reasons,
+                        "exclusion_reason": reasons.get(index),
                     }
-                    for _, lap in group.iterrows()
+                    for index, lap in group.iterrows()
                 ],
             }
         )
@@ -334,6 +385,7 @@ def long_run_overview(laps, drivers=None, min_laps=LONG_RUN_MIN_LAPS):
     ]
 
     return {
+        "fuel_correction_per_lap": FUEL_CORRECTION_SECONDS_PER_LAP,
         "runs": runs,
         "tyre_rankings": tyre_rankings,
         "session_tyre_ranking": session_tyre_ranking,
