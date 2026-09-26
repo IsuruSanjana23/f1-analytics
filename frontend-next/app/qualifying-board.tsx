@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { Schemas } from "./lib/api";
 import { lapTime } from "./lib/format";
 import { teamColor } from "./team-colors";
-import "./qualifying.css";
 
 type Analysis = Schemas["QualifyingAnalysis"];
 type Row = {

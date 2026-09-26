@@ -26,15 +26,12 @@ html .dedicated-telemetry .delta-channel > svg {
   aspect-ratio: 900 / 112;
 }
 
-.dedicated-telemetry .trace-channel-head,
-.dedicated-telemetry .delta-channel .trace-channel-head {
-  min-height: 50px;
-  padding: 18px 22px 10px;
-}
-
 .dedicated-telemetry .trace-channel-head strong,
 .dedicated-telemetry .delta-channel .trace-channel-head strong {
-  font: 700 16px/1.1 Arial, Helvetica, sans-serif;
+  font:
+    700 16px/1.1 Arial,
+    Helvetica,
+    sans-serif;
   letter-spacing: 0.025em !important;
 }
 
@@ -42,17 +39,17 @@ html .dedicated-telemetry .delta-channel > svg {
 .dedicated-telemetry .delta-channel .trace-channel-head strong small {
   margin-top: 6px;
   color: #aeb9c6;
-  font: 500 13px/1.2 Arial, Helvetica, sans-serif;
+  font:
+    500 13px/1.2 Arial,
+    Helvetica,
+    sans-serif;
 }
 
 .dedicated-telemetry .trace-channel-head > div {
-  font: 600 12px ui-monospace, Consolas, monospace;
-}
-
-.dedicated-telemetry .trace-channel text,
-.dedicated-telemetry .delta-channel text {
-  fill: #d1dbe3;
-  font: 11px ui-monospace, Consolas, monospace;
+  font:
+    600 12px ui-monospace,
+    Consolas,
+    monospace;
 }
 
 .dedicated-telemetry .telemetry-context {
@@ -89,18 +86,11 @@ html .dedicated-telemetry .telemetry-analysis-grid {
   .dedicated-telemetry .delta-channel {
     margin-bottom: 14px !important;
   }
-
 }
 
 @media (max-width: 760px) {
   .dedicated-telemetry .telemetry-analysis-grid {
     margin: 10px 8px 0;
-  }
-
-  .dedicated-telemetry .trace-channel-head,
-  .dedicated-telemetry .delta-channel .trace-channel-head {
-    min-height: 42px;
-    padding: 14px 14px 8px;
   }
 
   .dedicated-telemetry .trace-channel-head strong,

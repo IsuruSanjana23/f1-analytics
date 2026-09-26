@@ -1,8 +1,5 @@
 "use client";
 import { Fragment, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import "./telemetry.css";
-import "./telemetry-route-nav.css";
-import "./telemetry-scale.css";
 import { valueAt, signed, type Channel } from "./telemetry-values";
 import { fastestLap } from "./fastest-lap";
 import { circuitAssetForRace } from "./circuit-assets";

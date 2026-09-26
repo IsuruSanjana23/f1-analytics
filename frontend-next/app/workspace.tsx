@@ -12,9 +12,6 @@ import { useWorkspaceState, type WorkspaceTab } from "./workspace-state";
 import { API, apiUrl, type DriverAnalysis, type Schemas } from "./lib/api";
 import { compoundClass, lapTime } from "./lib/format";
 import { useApi } from "./lib/use-api";
-import "./refinements.css";
-import "./stitch-theme.css";
-import "./nav-rail.css";
 
 function exportSessionCsv(data: SessionBoardData, race: string, session: string) {
   if (!data || !data.fastest_laps.length) return;

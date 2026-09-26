@@ -11,15 +11,20 @@
   justify-content: space-between;
   padding: 0 2px 10px;
   color: #8d9aa8;
-  font: 600 10px ui-monospace, Consolas, monospace;
-  letter-spacing: .08em;
+  font:
+    600 10px ui-monospace,
+    Consolas,
+    monospace;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .stint-chart-plot {
   border: 1px solid var(--line);
   background-color: #0a0c10;
-  background-image: linear-gradient(#ffffff05 1px, transparent 1px), linear-gradient(90deg, #ffffff05 1px, transparent 1px);
+  background-image:
+    linear-gradient(#ffffff05 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff05 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
@@ -27,7 +32,10 @@
   display: block;
   width: 100%;
   height: auto;
-  font: 11px ui-monospace, Consolas, monospace;
+  font:
+    11px ui-monospace,
+    Consolas,
+    monospace;
   fill: #8e9ba8;
 }
 
@@ -37,7 +45,10 @@
   gap: 20px;
   padding: 14px 2px 0;
   color: #8d9aa8;
-  font: 500 11px ui-monospace, Consolas, monospace;
+  font:
+    500 11px ui-monospace,
+    Consolas,
+    monospace;
   text-transform: uppercase;
 }
 
@@ -59,7 +70,10 @@
 
 .stint-group-count {
   color: #8d9aa8;
-  font: 500 10px ui-monospace, Consolas, monospace;
+  font:
+    500 10px ui-monospace,
+    Consolas,
+    monospace;
   text-transform: uppercase;
 }
 
@@ -91,7 +105,10 @@
 
 .stint-run-id strong {
   display: block;
-  font: 700 16px/1.1 ui-monospace, Consolas, monospace;
+  font:
+    700 16px/1.1 ui-monospace,
+    Consolas,
+    monospace;
 }
 
 .stint-run-id small {
@@ -99,7 +116,10 @@
   margin-top: 3px;
   overflow: hidden;
   color: #8d9aa8;
-  font: 500 10px ui-monospace, Consolas, monospace;
+  font:
+    500 10px ui-monospace,
+    Consolas,
+    monospace;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -114,7 +134,10 @@
   border: 1px solid var(--line);
   background: #161e28;
   color: #c7d0da;
-  font: 700 11px ui-monospace, Consolas, monospace;
+  font:
+    700 11px ui-monospace,
+    Consolas,
+    monospace;
 }
 
 .stint-run-bar {
@@ -153,13 +176,19 @@
   display: block;
   margin-bottom: 5px;
   color: #8d9aa8;
-  font: 700 9px ui-monospace, Consolas, monospace;
-  letter-spacing: .08em;
+  font:
+    700 9px ui-monospace,
+    Consolas,
+    monospace;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .stint-run-stats b {
-  font: 600 13px ui-monospace, Consolas, monospace;
+  font:
+    600 13px ui-monospace,
+    Consolas,
+    monospace;
   color: var(--text);
 }
 

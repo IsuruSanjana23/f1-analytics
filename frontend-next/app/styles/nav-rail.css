@@ -39,12 +39,18 @@
   border-radius: 3px;
   background: none;
   color: var(--lime);
-  font: 700 11px ui-monospace, Consolas, monospace;
+  font:
+    700 11px ui-monospace,
+    Consolas,
+    monospace;
 }
 
 .nav-rail-brand strong {
-  font: 700 15px/1 Arial, Helvetica, sans-serif;
-  letter-spacing: .05em;
+  font:
+    700 15px/1 Arial,
+    Helvetica,
+    sans-serif;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
@@ -64,7 +70,10 @@
   color: #a7b2be;
   cursor: pointer;
   text-align: left;
-  font: 700 11px ui-monospace, Consolas, monospace;
+  font:
+    700 11px ui-monospace,
+    Consolas,
+    monospace;
   text-transform: uppercase;
 }
 
@@ -107,7 +116,10 @@
   background: transparent;
   color: #9ba8b6;
   cursor: pointer;
-  font: 700 10px ui-monospace, Consolas, monospace;
+  font:
+    700 10px ui-monospace,
+    Consolas,
+    monospace;
 }
 
 .nav-rail-sessions button[aria-pressed="true"] {
@@ -118,7 +130,10 @@
 
 .nav-rail-sessions button:disabled,
 .nav-rail-filters .custom-select > button:disabled,
-.nav-rail-load-btn:disabled { cursor: not-allowed; opacity: .42; }
+.nav-rail-load-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
 
 .nav-rail-load-btn {
   min-height: 36px;
@@ -126,7 +141,10 @@
   background: #102b2a;
   color: var(--lime);
   cursor: pointer;
-  font: 700 10px ui-monospace, Consolas, monospace;
+  font:
+    700 10px ui-monospace,
+    Consolas,
+    monospace;
   text-transform: uppercase;
 }
 
@@ -197,7 +215,10 @@
   background: #102b2a;
   color: var(--lime);
   cursor: pointer;
-  font: 700 10px ui-monospace, Consolas, monospace;
+  font:
+    700 10px ui-monospace,
+    Consolas,
+    monospace;
   text-transform: uppercase;
 }
 
@@ -208,7 +229,10 @@
   margin-top: auto;
   padding: 16px 18px;
   color: #9ba6b3;
-  font: 500 10px ui-monospace, Consolas, monospace;
+  font:
+    500 10px ui-monospace,
+    Consolas,
+    monospace;
   text-transform: uppercase;
 }
 
@@ -251,15 +275,21 @@
 
 .content-header-title h1 {
   margin: 0;
-  font: 700 20px/1 Arial, Helvetica, sans-serif;
-  letter-spacing: .03em;
+  font:
+    700 20px/1 Arial,
+    Helvetica,
+    sans-serif;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .content-header-title span {
   overflow: hidden;
   color: #9ba8b6;
-  font: 600 11px ui-monospace, Consolas, monospace;
+  font:
+    600 11px ui-monospace,
+    Consolas,
+    monospace;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -278,7 +308,10 @@
   background: #151c25;
   color: #c7d0da;
   cursor: pointer;
-  font: 700 10px ui-monospace, Consolas, monospace;
+  font:
+    700 10px ui-monospace,
+    Consolas,
+    monospace;
   text-transform: uppercase;
 }
 
@@ -289,7 +322,7 @@
 
 .content-header-actions button:disabled {
   cursor: not-allowed;
-  opacity: .45;
+  opacity: 0.45;
 }
 
 .session-selection-empty {
@@ -304,8 +337,16 @@
   text-align: center;
 }
 
-.session-selection-empty h2 { margin: 10px 0; font-size: 24px; }
-.session-selection-empty p { margin: 0; color: #9ba8b6; font-size: 13px; line-height: 1.6; }
+.session-selection-empty h2 {
+  margin: 10px 0;
+  font-size: 24px;
+}
+.session-selection-empty p {
+  margin: 0;
+  color: #9ba8b6;
+  font-size: 13px;
+  line-height: 1.6;
+}
 
 @media (max-width: 1180px) {
   .nav-rail-shell {
@@ -370,8 +411,11 @@
   display: block;
   margin-bottom: 8px;
   color: #8d9aa8;
-  font: 700 9px ui-monospace, Consolas, monospace;
-  letter-spacing: .08em;
+  font:
+    700 9px ui-monospace,
+    Consolas,
+    monospace;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -380,7 +424,10 @@
   align-items: center;
   gap: 9px;
   color: var(--lime);
-  font: 600 26px/1 ui-monospace, Consolas, monospace;
+  font:
+    600 26px/1 ui-monospace,
+    Consolas,
+    monospace;
 }
 
 .stat-strip .stat-driver-rail {
@@ -412,7 +459,10 @@
   padding: 12px 26px;
   border-bottom: 1px solid var(--line);
   color: #8d9aa8;
-  font: 500 11px ui-monospace, Consolas, monospace;
+  font:
+    500 11px ui-monospace,
+    Consolas,
+    monospace;
 }
 
 .session-meta-row strong {
@@ -426,7 +476,10 @@
   background: #102b2b;
   color: var(--lime);
   cursor: pointer;
-  font: 700 10px ui-monospace, Consolas, monospace;
+  font:
+    700 10px ui-monospace,
+    Consolas,
+    monospace;
   text-transform: uppercase;
   white-space: nowrap;
 }

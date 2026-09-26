@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from "react";
 import type { Schemas } from "./lib/api";
-import "./long-run-controls.css";
-import "./stint-chart.css";
 
 type LongRunLap = Schemas["LongRunLap"];
 type LongRun = Schemas["LongRun"];

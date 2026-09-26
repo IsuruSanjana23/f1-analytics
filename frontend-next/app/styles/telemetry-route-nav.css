@@ -18,7 +18,10 @@
   padding: 0 13px;
   border-bottom: 2px solid transparent;
   color: #a9b4c0;
-  font: 600 10px ui-monospace, Consolas, monospace;
+  font:
+    600 10px ui-monospace,
+    Consolas,
+    monospace;
   text-decoration: none;
   text-transform: uppercase;
 }
@@ -31,16 +34,26 @@
 }
 
 @media (max-width: 1180px) {
-  .telemetry-route-nav { padding: 0 14px; }
+  .telemetry-route-nav {
+    padding: 0 14px;
+  }
 }
 
 @media (max-width: 760px) {
-  .telemetry-route-nav { min-height: 40px; }
-  .telemetry-route-nav a { min-height: 40px; padding: 0 10px; font-size: 9px; }
+  .telemetry-route-nav {
+    min-height: 40px;
+  }
+  .telemetry-route-nav a {
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 9px;
+  }
 }
 
 /* The chart axis is the source of truth for the dedicated telemetry view. */
-.dedicated-telemetry .channel-range { display: none !important; }
+.dedicated-telemetry .channel-range {
+  display: none !important;
+}
 
 /* A single, contained plotting surface for the focused telemetry comparison. */
 .dedicated-telemetry .trace-channel {
@@ -107,8 +120,13 @@
   font-size: 11px;
 }
 
-.track-map-head a { color: #55e5d4; text-decoration: none; }
-.track-map-head a:hover { text-decoration: underline; }
+.track-map-head a {
+  color: #55e5d4;
+  text-decoration: none;
+}
+.track-map-head a:hover {
+  text-decoration: underline;
+}
 
 .track-map {
   display: block;
@@ -174,7 +192,9 @@ div.track-map-fallback small {
   font: inherit;
 }
 
-.track-map-controls select { padding: 0 6px; }
+.track-map-controls select {
+  padding: 0 6px;
+}
 
 .track-map-controls .map-play {
   width: 32px;
@@ -182,24 +202,48 @@ div.track-map-fallback small {
   font-weight: 700;
 }
 
-.dedicated-telemetry .trace-channel:last-of-type { margin-bottom: 16px; }
-.dedicated-telemetry .trace-channel > svg { background: #0d1117; }
-.dedicated-telemetry .trace-channel path { filter: none; }
-.dedicated-telemetry .trace-speed > svg { height: 330px !important; }
-.dedicated-telemetry .delta-channel > svg { height: 155px !important; }
+.dedicated-telemetry .trace-channel:last-of-type {
+  margin-bottom: 16px;
+}
+.dedicated-telemetry .trace-channel > svg {
+  background: #0d1117;
+}
+.dedicated-telemetry .trace-channel path {
+  filter: none;
+}
+.dedicated-telemetry .trace-speed > svg {
+  height: 330px !important;
+}
+.dedicated-telemetry .delta-channel > svg {
+  height: 155px !important;
+}
 
 @media (max-width: 760px) {
-  .dedicated-telemetry .trace-channel { margin-left: 8px; margin-right: 8px; }
-  .dedicated-telemetry .trace-speed > svg { height: 220px !important; }
+  .dedicated-telemetry .trace-channel {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+  .dedicated-telemetry .trace-speed > svg {
+    height: 220px !important;
+  }
 }
 
 @media (max-width: 1050px) {
-  .telemetry-analysis-grid { grid-template-columns: 1fr; }
+  .telemetry-analysis-grid {
+    grid-template-columns: 1fr;
+  }
   .track-map-panel,
   .telemetry-analysis-grid .trace-speed,
   .telemetry-analysis-grid .delta-channel,
   .telemetry-analysis-grid .trace-throttle,
-  .telemetry-analysis-grid .trace-brake { grid-column: 1; grid-row: auto; }
-  .track-map-panel { min-height: 270px; }
-  .track-map { height: 190px; }
+  .telemetry-analysis-grid .trace-brake {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .track-map-panel {
+    min-height: 270px;
+  }
+  .track-map {
+    height: 190px;
+  }
 }
