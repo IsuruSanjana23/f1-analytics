@@ -1,0 +1,14 @@
+.quali-segments{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.quali-segments small{color:var(--muted);font:600 10px ui-monospace,Consolas,monospace;text-transform:uppercase}
+.qualifying-table tr.quali-out td{color:var(--muted)}
+.qualifying-table tr.quali-out .timing-position{color:var(--loss)}
+.qualifying-table tr.quali-cutoff td{height:auto;padding:0;border-top:1px dashed var(--loss)}
+.qualifying-table .quali-status{font:600 10px ui-monospace,Consolas,monospace;text-transform:uppercase}
+.qualifying-table .quali-status.out{color:var(--loss)}
+.qualifying-table .quali-status.through{color:var(--gain)}
+.quali-gap{display:flex;align-items:center;gap:8px;min-width:130px}
+.quali-gap i{display:block;height:4px;background:var(--lime);opacity:.7;min-width:2px}
+.quali-attempts{display:flex;gap:4px;flex-wrap:wrap}
+.quali-attempts span{padding:2px 5px;border:1px solid var(--line);color:var(--muted);font:11px ui-monospace,Consolas,monospace}
+.quali-attempts span.best{border-color:var(--lime);color:var(--text)}
+.quali-hero .stat-driver-rail{display:inline-block;width:4px;height:22px;margin-right:12px;vertical-align:-3px}

@@ -5,6 +5,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from backend import schemas
 from backend.core.config import CORS_ORIGINS, DEFAULT_TELEMETRY_SAMPLES, LONG_RUN_MIN_LAPS
 from backend.core.errors import DataUnavailableError, F1DataError
 from backend.services.analytics import lap_summary, long_run_overview, telemetry_for_lap, track_layout_for_session
@@ -52,27 +53,27 @@ def unexpected_error(request: Request, error: Exception):
     return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
-@app.get("/api/health")
+@app.get("/api/health", response_model=schemas.Health)
 def health():
     return {"status": "ok"}
 
 
-@app.get("/api/seasons")
+@app.get("/api/seasons", response_model=schemas.Seasons)
 def seasons():
     return {"seasons": get_available_seasons()}
 
 
-@app.get("/api/races")
+@app.get("/api/races", response_model=schemas.Races)
 def races(year: int):
     return {"year": year, "races": get_races(year)}
 
 
-@app.get("/api/sessions")
+@app.get("/api/sessions", response_model=schemas.Sessions)
 def sessions(year: int, race: str):
     return {"year": year, "race": race, "sessions": get_sessions(year, race)}
 
 
-@app.get("/api/drivers")
+@app.get("/api/drivers", response_model=schemas.Drivers)
 def drivers(year: int, race: str, session: str):
     loaded_session = load_session(year, race, session)
     return {
@@ -83,22 +84,22 @@ def drivers(year: int, race: str, session: str):
     }
 
 
-@app.get("/api/session-analysis")
+@app.get("/api/session-analysis", response_model=schemas.SessionAnalysis)
 def session_analysis(year: int, race: str, session: str):
     return analyze_session(year, race, session)
 
 
-@app.get("/api/qualifying-analysis")
+@app.get("/api/qualifying-analysis", response_model=schemas.QualifyingAnalysis)
 def qualifying_analysis(year: int, race: str, session: str = "Q"):
     return analyze_qualifying(year, race, session)
 
 
-@app.get("/api/driver-analysis")
+@app.get("/api/driver-analysis", response_model=schemas.DriverAnalysis)
 def driver_analysis(year: int, race: str, session: str, driver: DriverCode):
     return analyze_driver(year, race, session, driver.upper())
 
 
-@app.get("/api/lap-telemetry")
+@app.get("/api/lap-telemetry", response_model=schemas.LapTelemetry)
 def lap_telemetry(
     year: int,
     race: str,
@@ -112,7 +113,7 @@ def lap_telemetry(
     return {"summary": lap_summary(selected), "telemetry": telemetry_for_lap(selected, telemetry_samples)}
 
 
-@app.get("/api/track-layout")
+@app.get("/api/track-layout", response_model=schemas.TrackLayout)
 def track_layout(year: int, race: str, session: str):
     loaded = load_session(year, race, session)
     return {
@@ -124,7 +125,7 @@ def track_layout(year: int, race: str, session: str):
     }
 
 
-@app.get("/api/lap-comparison")
+@app.get("/api/lap-comparison", response_model=schemas.LapComparison)
 def lap_comparison(
     year: int,
     race: str,
@@ -147,7 +148,7 @@ def lap_comparison(
     )
 
 
-@app.get("/api/long-run-comparison")
+@app.get("/api/long-run-comparison", response_model=schemas.LongRunComparison)
 def long_run_comparison(
     year: int,
     race: str,
@@ -170,7 +171,7 @@ def long_run_comparison(
     )
 
 
-@app.get("/api/long-runs")
+@app.get("/api/long-runs", response_model=schemas.LongRunOverview)
 def long_runs(
     year: int,
     race: str,

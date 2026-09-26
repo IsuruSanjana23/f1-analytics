@@ -3,12 +3,13 @@
 import { useState } from "react";
 import Telemetry from "./telemetry";
 import PaceChart from "./pace-chart";
-import LongRunAnalysis, { type LongRunData } from "./long-run-analysis";
+import LongRunAnalysis from "./long-run-analysis";
+import QualifyingBoard from "./qualifying-board";
 import SessionBoard, { type SessionBoardData } from "./session-board";
 import WorkspaceAside from "./workspace-aside";
 import WorkspaceSidebar from "./workspace-sidebar";
 import { useWorkspaceState, type WorkspaceTab } from "./workspace-state";
-import { API, apiUrl, type Driver, type DriverAnalysis } from "./lib/api";
+import { API, apiUrl, type DriverAnalysis, type Schemas } from "./lib/api";
 import { compoundClass, lapTime } from "./lib/format";
 import { useApi } from "./lib/use-api";
 import "./refinements.css";
@@ -34,7 +35,7 @@ export default function Workspace({ telemetryPage = false }: { telemetryPage?: b
   const state = useWorkspaceState(telemetryPage);
   const { year, race, session, tab, loadedContext, selectedDrivers, metadata } = state;
 
-  const drivers = useApi<{ drivers: Driver[] }>(loadedContext ? apiUrl("/drivers", loadedContext) : null);
+  const drivers = useApi<Schemas["Drivers"]>(loadedContext ? apiUrl("/drivers", loadedContext) : null);
   const driverOptions = drivers.data?.drivers ?? [];
   // Drop drivers (e.g. from a shared link) that did not take part in this session.
   const activeDrivers = drivers.data ? selectedDrivers.filter((code) => driverOptions.some((driver) => driver.code === code)) : selectedDrivers;
@@ -42,9 +43,11 @@ export default function Workspace({ telemetryPage = false }: { telemetryPage?: b
 
   const analysisUrl = loadedContext && referenceDriver ? apiUrl("/driver-analysis", { ...loadedContext, driver: referenceDriver }) : null;
   const analysis = useApi<DriverAnalysis>(analysisUrl);
-  const sessionBoard = useApi<NonNullable<SessionBoardData>>(loadedContext && tab === "session" ? apiUrl("/session-analysis", loadedContext) : null);
+  const sessionBoard = useApi<Schemas["SessionAnalysis"]>(loadedContext && tab === "session" ? apiUrl("/session-analysis", loadedContext) : null);
+  const isQualifying = ["Q", "SQ", "SS"].includes(loadedContext?.session ?? "");
+  const qualifying = useApi<Schemas["QualifyingAnalysis"]>(loadedContext && isQualifying && tab === "qualifying" ? apiUrl("/qualifying-analysis", loadedContext) : null);
   const longRunsUrl = loadedContext && activeDrivers.length && tab === "longruns" ? apiUrl("/long-runs", { ...loadedContext, drivers: activeDrivers.join(",") }) : null;
-  const longRuns = useApi<NonNullable<LongRunData>>(longRunsUrl);
+  const longRuns = useApi<Schemas["LongRunOverview"]>(longRunsUrl);
 
   const laps = analysis.data?.laps ?? [];
   const summary = analysis.data?.summary ?? {};
@@ -59,10 +62,11 @@ export default function Workspace({ telemetryPage = false }: { telemetryPage?: b
   const status = !loadedContext ? metadata.error ? "Metadata unavailable" : "Choose a session, then load data"
     : drivers.error || analysis.error || (!referenceDriver ? "Select a driver" : analysis.loading ? "Loading session" : "API connected");
   const connected = status === "API connected";
-  const showLoading = !!loadedContext && (analysis.loading || (tab === "longruns" && longRuns.loading) || (tab === "session" && sessionBoard.loading));
+  const showLoading = !!loadedContext && (analysis.loading || (tab === "longruns" && longRuns.loading) || (tab === "session" && sessionBoard.loading) || (tab === "qualifying" && qualifying.loading));
 
   const headerCopy: Record<WorkspaceTab, { kicker: string; title: string; subtitle: string }> = {
     session: { kicker: "Session overview", title: "Timing classification", subtitle: loadedContext ? `${loadedContext.race} · ${loadedContext.session} · ${sessionBoard.data?.fastest_laps.length ?? driverOptions.length} drivers` : "No session loaded" },
+    qualifying: { kicker: "Qualifying breakdown", title: "Qualifying by segment", subtitle: loadedContext ? `${loadedContext.race} · ${loadedContext.session}` : "No session loaded" },
     laps: { kicker: "Driver lap forensics", title: "Lap pace evolution", subtitle: `${referenceDriver || "No driver"} · ${timedLaps.length} timed laps` },
     longruns: { kicker: "Stint intelligence", title: "Long-run pace by tyre and stint", subtitle: `${activeDrivers.length} selected drivers` },
     telemetry: { kicker: "Telemetry comparison", title: "Selected laps · telemetry trace", subtitle: `${referenceDriver || "No driver"} · ${timedLaps.length} timed laps` },
@@ -91,6 +95,7 @@ export default function Workspace({ telemetryPage = false }: { telemetryPage?: b
         <div className="primary-column">
           {tab !== "session" && <div className="section-title"><div><span className="kicker">{activeHeader.kicker}</span><h2>{activeHeader.title}</h2></div><span className="chart-note">{activeHeader.subtitle}</span></div>}
           {tab === "session" ? <SessionBoard data={sessionBoard.data ?? null} error={sessionBoard.error} selectedDrivers={activeDrivers} onTelemetry={() => state.setTab("telemetry")} />
+            : tab === "qualifying" ? <QualifyingBoard data={qualifying.data} error={qualifying.error} isQualifying={isQualifying} selectedDrivers={activeDrivers} />
             : tab === "longruns" ? <LongRunAnalysis key={longRunsUrl ?? "none"} data={longRuns.data ?? null} error={longRuns.error ?? (activeDrivers.length ? undefined : "Select a driver to compare long runs.")} />
             : tab === "telemetry" ? telemetry
             : <PaceChart laps={laps} selectedLap={selectedLap ?? 0} onSelect={selectLap} />}

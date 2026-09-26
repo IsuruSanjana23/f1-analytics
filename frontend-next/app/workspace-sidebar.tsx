@@ -5,7 +5,7 @@ import type { Driver } from "./lib/api";
 import { teamColor } from "./team-colors";
 import type { WorkspaceTab } from "./workspace-state";
 
-const navLinks: [WorkspaceTab, string][] = [["session", "Session"], ["laps", "Driver laps"], ["longruns", "Long runs"], ["telemetry", "Telemetry"]];
+const navLinks: [WorkspaceTab, string][] = [["session", "Session"], ["qualifying", "Qualifying"], ["laps", "Driver laps"], ["longruns", "Long runs"], ["telemetry", "Telemetry"]];
 
 type Props = {
   tab: WorkspaceTab;

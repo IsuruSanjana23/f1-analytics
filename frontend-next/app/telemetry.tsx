@@ -4,14 +4,15 @@ import "./telemetry.css";
 import "./telemetry-route-nav.css";
 import "./telemetry-scale.css";
 import { valueAt, signed, type Channel } from "./telemetry-values";
-import { fastestLap, type TimedLap } from "./fastest-lap";
+import { fastestLap } from "./fastest-lap";
 import { circuitAssetForRace } from "./circuit-assets";
+import type { Schemas } from "./lib/api";
 import { fetchCached, useApi } from "./lib/use-api";
 
-type Sample = { distance: number; speed: number | null; throttle: number | null; brake: boolean | null; rpm: number | null; gear: number | null; drs: number | null; x?: number | null; y?: number | null };
-type Lap = TimedLap & { compound: string };
+type Sample = Schemas["TelemetrySample"];
+type Lap = Schemas["LapSummary"];
 type Entry = { driver: string; laps: Lap[]; lap: number; color: string; rows: Sample[]; trackLength: number; error: string; loading: boolean; visible: boolean };
-type TrackPoint = { x: number; y: number; progress: number };
+type TrackPoint = Schemas["TrackPoint"];
 const palette = ["#ff5f74", "#52d9ff", "#f4c95d", "#bd8cff", "#64e2a4", "#ff9f5a", "#a8b7ff", "#f37fbc", "#b9e66b", "#ffdb6e"];
 const channels = [["speed", "Speed", "km/h"], ["throttle", "Throttle", "%"], ["brake", "Brake", "ON / OFF"]] as const;
 const time = (n: number | null | undefined) => n == null ? "--" : `${Math.floor(n / 60)}:${(n % 60).toFixed(3).padStart(6, "0")}`;
@@ -33,11 +34,11 @@ function normalizeTelemetry(rows: Sample[]) {
   };
 }
 
-async function getJson(api: string, path: string, signal?: AbortSignal) {
+async function getJson<T>(api: string, path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${api}${path}`, { signal });
   const data = await response.json().catch(() => null);
   if (!response.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Telemetry request failed");
-  return data;
+  return data as T;
 }
 
 function median(values: number[]) {
@@ -207,7 +208,7 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
     setEntries(old => old.map(e => e.driver === driver ? { ...e, lap: number, rows: [], trackLength: 0, loading: true, error: "" } : e));
     try {
       const query = new URLSearchParams({ year, race, session, driver, lap: String(number), telemetry_samples: "1000" });
-      const result = await getJson(api, `/lap-telemetry?${query}`, signal);
+      const result = await getJson<Schemas["LapTelemetry"]>(api, `/lap-telemetry?${query}`, signal);
       if (generation.current !== version || versions.current[driver] !== request || signal?.aborted) return;
       const normalized = normalizeTelemetry(result.telemetry);
       setEntries(old => old.map(e => e.driver === driver ? { ...e, rows: normalized.rows, trackLength: normalized.trackLength, loading: false, error: normalized.rows.length ? "" : "No telemetry for this lap." } : e));
@@ -220,9 +221,9 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
   const previousContext = useRef("");
   const previousCodes = useRef<string[]>([]);
 
-  const layout = useApi<{ points?: TrackPoint[]; official_circuit_url?: string | null }>(`${api}/track-layout?${new URLSearchParams({ year, race, session })}`);
-  const trackLayout = Array.isArray(layout.data?.points) ? layout.data.points : [];
-  const officialCircuitUrl = typeof layout.data?.official_circuit_url === "string" ? layout.data.official_circuit_url : null;
+  const layout = useApi<Schemas["TrackLayout"]>(`${api}/track-layout?${new URLSearchParams({ year, race, session })}`);
+  const trackLayout = layout.data?.points ?? [];
+  const officialCircuitUrl = layout.data?.official_circuit_url ?? null;
 
   useEffect(() => {
     if (!playing) return;
@@ -234,7 +235,7 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
   // An effect event so it always sees the current props without re-running the effect.
   const loadDriver = useEffectEvent(async (driver: string, isReference: boolean, contextChanged: boolean, version: number, signal: AbortSignal) => {
     try {
-      const result = await fetchCached<{ laps: Lap[] }>(`${api}/driver-analysis?${new URLSearchParams({ year, race, session, driver })}`);
+      const result = await fetchCached<Schemas["DriverAnalysis"]>(`${api}/driver-analysis?${new URLSearchParams({ year, race, session, driver })}`);
       if (signal.aborted || generation.current !== version) return;
       const laps = result.laps.filter((l) => l.lap_time_seconds != null);
       const saved = new URLSearchParams(window.location.search);
@@ -328,7 +329,7 @@ export default function Telemetry({ api, year, race, session, drivers, lap, onRe
       <div className="telemetry-cursor-readout"><span>Cursor</span><div><b>Dist</b> {displayDistance(cursor)} m</div><div><b>Speed</b> {cursorSpeed == null ? "--" : `${Math.round(cursorSpeed)} km/h`}</div>{cursorDelta != null && <div><b>Delta</b> <em>{signed(cursorDelta)} s</em></div>}</div>
       <div className="telemetry-console-actions"><button type="button" onClick={share}>Share</button><button type="button" onClick={exportTelemetry}>Export</button></div>
     </header>
-    <nav className="telemetry-route-nav" aria-label="Analysis pages"><a href={workspaceHref("session")}>Session</a><a href={workspaceHref("laps")}>Driver laps</a><a href={workspaceHref("longruns")}>Long runs</a><a className="active" href={workspaceHref("telemetry")}>Telemetry</a></nav>
+    <nav className="telemetry-route-nav" aria-label="Analysis pages"><a href={workspaceHref("session")}>Session</a><a href={workspaceHref("qualifying")}>Qualifying</a><a href={workspaceHref("laps")}>Driver laps</a><a href={workspaceHref("longruns")}>Long runs</a><a className="active" href={workspaceHref("telemetry")}>Telemetry</a></nav>
     {lapPickerOpen && <section className="telemetry-popover lap-picker" aria-label="Select comparison laps"><header><strong>Comparison laps</strong><button type="button" onClick={() => setLapPickerOpen(false)}>Close</button></header>{entries.map((entry) => <label key={entry.driver}><span style={{ color: entry.color }}>{entry.driver}</span><select value={entry.lap} disabled={!entry.laps.length || entry.loading} onChange={(event) => void fetchLap(entry.driver, Number(event.target.value), generation.current)}>{entry.laps.map((entryLap) => <option key={entryLap.lap_number} value={entryLap.lap_number}>L{entryLap.lap_number} · {time(entryLap.lap_time_seconds)} · {entryLap.compound}</option>)}</select></label>)}</section>}
     {!!message && <p className="telemetry-action-status" role="status">{message}</p>}
     <footer className="telemetry-footer telemetry-context"><span><i></i>Data link <b>Live</b></span><span>Track <b>{race}</b></span><span>Session <b>{session}</b></span><span>Year <b>{year}</b></span><span>Reference <b>{baseline ? `${baseline.driver} / L${baseline.lap}` : "--"}</b></span></footer>

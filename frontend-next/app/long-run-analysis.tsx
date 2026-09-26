@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { Schemas } from "./lib/api";
 import "./long-run-controls.css";
 import "./stint-chart.css";
 
-type LongRunLap = { lap_number: number; lap_time_seconds: number; tyre_life: number | null; default_included: boolean; exclusion_reason: string | null };
-type LongRun = { run_id: string; driver: string; stint: number; compound: string; laps: LongRunLap[] };
-export type LongRunData = { runs: LongRun[]; min_laps: number; fuel_correction_per_lap?: number } | null;
+type LongRunLap = Schemas["LongRunLap"];
+type LongRun = Schemas["LongRun"];
+export type LongRunData = Schemas["LongRunOverview"] | null;
 
 const RUN_COLORS = ["#42ddd1", "#FF8000", "#E8002D", "#3671C6", "#00D2BE", "#B6BABD", "#229971", "#FF87BC"];
 

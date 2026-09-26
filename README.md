@@ -46,7 +46,7 @@ npm run dev                           # http://localhost:3000
 | `GET /api/sessions?year=&race=` | Sessions for an event |
 | `GET /api/drivers?year=&race=&session=` | Drivers in a session |
 | `GET /api/session-analysis` | Fastest laps, top speeds, long runs, tyre stints |
-| `GET /api/qualifying-analysis` | Best laps and every push attempt |
+| `GET /api/qualifying-analysis` | Best laps, Q1/Q2/Q3 rankings and every push attempt |
 | `GET /api/driver-analysis` | One driver's laps and performance summary |
 | `GET /api/long-runs` | Long-run pace ranked by compound |
 | `GET /api/long-run-comparison` | Two stints side by side |
@@ -86,6 +86,14 @@ python -m backend.smoke_test_api   # end-to-end check against live F1 data (need
 
 cd frontend-next
 npm run lint && npm run typecheck && npm run build
+```
+
+API responses are declared as Pydantic models in `backend/schemas.py`. After changing them,
+regenerate the OpenAPI schema and the frontend's TypeScript types (CI fails if either is stale):
+
+```bash
+python -m backend.export_openapi          # writes frontend-next/openapi.json
+cd frontend-next && npm run generate:api  # writes app/lib/api-types.ts
 ```
 
 CI (`.github/workflows/ci.yml`) runs the same backend and frontend checks on every push to

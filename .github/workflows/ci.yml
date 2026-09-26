@@ -26,6 +26,10 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: ruff check backend
       - run: pytest
+      - name: OpenAPI schema is up to date
+        run: |
+          python -m backend.export_openapi
+          git diff --exit-code frontend-next/openapi.json || (echo "Run: python -m backend.export_openapi" && exit 1)
 
   frontend:
     name: Frontend (lint + typecheck + build)
@@ -41,6 +45,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend-next/package-lock.json
       - run: npm ci
+      - name: Generated API types are up to date
+        run: |
+          npm run generate:api
+          git diff --exit-code app/lib/api-types.ts || (echo "Run: npm run generate:api" && exit 1)
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiUrl, type SessionContext } from "./lib/api";
+import { apiUrl, type Schemas, type SessionContext } from "./lib/api";
 import { useApi } from "./lib/use-api";
 
-export const workspaceTabs = ["session", "laps", "longruns", "telemetry"] as const;
+export const workspaceTabs = ["session", "qualifying", "laps", "longruns", "telemetry"] as const;
 export type WorkspaceTab = (typeof workspaceTabs)[number];
 
 function isTab(value: string | null): value is WorkspaceTab {
@@ -58,13 +58,13 @@ export function useWorkspaceState(telemetryPage: boolean) {
 }
 
 function useSessionMetadata(yearChoice: string, race: string) {
-  const seasons = useApi<{ seasons: number[] }>(apiUrl("/seasons"));
+  const seasons = useApi<Schemas["Seasons"]>(apiUrl("/seasons"));
   const seasonOptions = seasons.data?.seasons.map(String) ?? [];
   const year = yearChoice || seasonOptions[0] || "";
-  const races = useApi<{ races: { name: string }[] }>(year ? apiUrl("/races", { year }) : null);
+  const races = useApi<Schemas["Races"]>(year ? apiUrl("/races", { year }) : null);
   const raceOptions = races.data?.races.map((item) => item.name) ?? [];
   // Only ask for sessions once the race is known to belong to the season.
-  const sessions = useApi<{ sessions: { key: string }[] }>(year && raceOptions.includes(race) ? apiUrl("/sessions", { year, race }) : null);
+  const sessions = useApi<Schemas["Sessions"]>(year && raceOptions.includes(race) ? apiUrl("/sessions", { year, race }) : null);
 
   return {
     seasons: seasonOptions,

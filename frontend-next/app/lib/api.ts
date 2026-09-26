@@ -1,12 +1,16 @@
+import type { components } from "./api-types";
+
 export const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
 
 // A cold FastF1 session load can take well over 30 s, so allow generous headroom.
 const DEFAULT_TIMEOUT_MS = 120_000;
 
-export type Driver = { code: string; number: string | null; full_name: string | null; team: string | null };
-export type Lap = { lap_number: number; lap_time_seconds: number | null; compound: string; stint: number; tyre_life: number; top_speed?: number; classification: string; deleted?: boolean };
-export type LongRunSummary = { stint: number; compound: string; lap_count: number; average_pace_seconds: number; pace_dropoff_per_lap: number | null };
-export type DriverAnalysis = { laps: Lap[]; summary: Record<string, number | null>; long_runs: LongRunSummary[] };
+// Response types are generated from the backend's OpenAPI schema (npm run generate:api).
+export type Schemas = components["schemas"];
+export type Driver = Schemas["Driver"];
+export type Lap = Schemas["LapSummary"];
+export type LongRunSummary = Schemas["LongRun"];
+export type DriverAnalysis = Schemas["DriverAnalysis"];
 export type SessionContext = { year: string; race: string; session: string };
 
 export function apiUrl(path: string, params: Record<string, string> = {}) {
