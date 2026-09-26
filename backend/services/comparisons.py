@@ -1,5 +1,6 @@
-from backend.core.config import DEFAULT_TELEMETRY_SAMPLES
-from backend.services.analytics import lap_summary, telemetry_for_lap
+from backend.core.config import DEFAULT_TELEMETRY_SAMPLES, LONG_RUN_MIN_LAPS
+from backend.core.errors import NotFoundError
+from backend.services.analytics import lap_summary, long_run_pace, telemetry_for_lap
 from backend.services.fastf1_client import event_summary, load_session, session_summary
 from backend.utils.formatting import rounded_or_none
 
@@ -14,7 +15,7 @@ def compare_laps(
     lap_b,
     telemetry_samples=DEFAULT_TELEMETRY_SAMPLES,
 ):
-    session = load_session(year, race, session_name, telemetry=True)
+    session = load_session(year, race, session_name)
     first_lap = find_lap(session.laps, driver_a, lap_a)
     second_lap = find_lap(session.laps, driver_b, lap_b)
 
@@ -42,11 +43,18 @@ def compare_laps(
     }
 
 
-def compare_long_runs(year, race, session_name, driver_a, stint_a, driver_b, stint_b):
-    from backend.services.analytics import long_run_pace
-
-    session = load_session(year, race, session_name, telemetry=False)
-    runs = long_run_pace(session.laps)
+def compare_long_runs(
+    year,
+    race,
+    session_name,
+    driver_a,
+    stint_a,
+    driver_b,
+    stint_b,
+    min_laps=LONG_RUN_MIN_LAPS,
+):
+    session = load_session(year, race, session_name)
+    runs = long_run_pace(session.laps, min_laps=min_laps)
     first_run = find_run(runs, driver_a, stint_a)
     second_run = find_run(runs, driver_b, stint_b)
 
@@ -76,7 +84,7 @@ def find_lap(laps, driver, lap_number):
     matches = laps.pick_drivers(driver)
     matches = matches[matches["LapNumber"] == float(lap_number)]
     if matches.empty:
-        raise ValueError(f"No lap {lap_number} found for {driver}")
+        raise NotFoundError(f"No lap {lap_number} found for {driver}")
     return matches.iloc[0]
 
 
@@ -84,5 +92,5 @@ def find_run(runs, driver, stint):
     for run in runs:
         if run["driver"] == driver and int(run["stint"]) == int(stint):
             return run
-    raise ValueError(f"No long run found for {driver} stint {stint}")
+    raise NotFoundError(f"No long run found for {driver} stint {stint}")
 

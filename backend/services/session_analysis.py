@@ -1,9 +1,10 @@
 from backend.services.analytics import (
     fastest_laps,
     lap_summary,
+    lap_top_speed,
     long_run_pace,
-    top_speed_for_lap,
     top_speeds,
+    top_speeds_by_lap,
     tyre_summary,
 )
 from backend.services.fastf1_client import event_summary, load_session, session_summary
@@ -12,34 +13,37 @@ from backend.utils.formatting import value_or_none
 
 
 def analyze_session(year, race, session_name):
-    session = load_session(year, race, session_name, telemetry=True)
+    session = load_session(year, race, session_name)
+    speeds = top_speeds_by_lap(session.laps)
 
     return {
         "event": event_summary(session),
         "session": session_summary(session),
         "drivers": available_drivers(session),
-        "fastest_laps": fastest_laps(session.laps),
-        "top_speeds": top_speeds(session.laps),
+        "fastest_laps": fastest_laps(session.laps, speeds),
+        "top_speeds": top_speeds(session.laps, speeds),
         "long_runs": long_run_pace(session.laps),
         "tyre_summary": tyre_summary(session.laps),
     }
 
 
 def analyze_qualifying(year, race, session_name):
-    session = load_session(year, race, session_name, telemetry=True)
-    attempts = qualifying_attempts(session.laps)
+    session = load_session(year, race, session_name)
+    speeds = top_speeds_by_lap(session.laps)
+    attempts = qualifying_attempts(session.laps, speeds)
 
     return {
         "event": event_summary(session),
         "session": session_summary(session),
         "drivers": available_drivers(session),
-        "best_laps": fastest_laps(session.laps),
-        "top_speeds": top_speeds(session.laps),
+        "best_laps": fastest_laps(session.laps, speeds),
+        "top_speeds": top_speeds(session.laps, speeds),
         "attempts": attempts,
     }
 
 
-def qualifying_attempts(laps):
+def qualifying_attempts(laps, speeds=None):
+    speeds = top_speeds_by_lap(laps) if speeds is None else speeds
     attempts = []
     quick_laps = valid_push_laps(laps).sort_values(["Driver", "LapTime"])
 
@@ -49,7 +53,7 @@ def qualifying_attempts(laps):
     session_best = quick_laps["LapTime"].min().total_seconds()
 
     for _, lap in quick_laps.iterlaps():
-        summary = lap_summary(lap, top_speed_for_lap(lap))
+        summary = lap_summary(lap, lap_top_speed(lap, speeds))
         summary["gap_to_session_best"] = round(
             summary["lap_time_seconds"] - session_best,
             3,

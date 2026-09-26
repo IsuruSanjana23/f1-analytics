@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from backend.app import app
 from backend.services.analytics import telemetry_for_lap, track_layout_for_session
+from backend.services.fastf1_client import _load_session_cached
 
 
 class TelemetryTests(unittest.TestCase):
@@ -59,7 +60,9 @@ class TelemetryTests(unittest.TestCase):
             load.assert_not_called()
 
     def test_provider_failure_is_service_unavailable(self):
-        with patch("backend.app.load_session", side_effect=RuntimeError("provider offline")):
+        _load_session_cached.cache_clear()
+        with patch("backend.services.fastf1_client.configure_fastf1"), \
+                patch("fastf1.get_session", side_effect=ConnectionError("provider offline")):
             response = TestClient(app).get("/api/lap-telemetry", params={
                 "year": 2025, "race": "Australian Grand Prix", "session": "FP1",
                 "driver": "HAM", "lap": 13})

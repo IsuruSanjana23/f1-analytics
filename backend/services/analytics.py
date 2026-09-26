@@ -103,14 +103,43 @@ def track_layout_for_session(laps, sample_size=500):
         return []
 
 
-def top_speed_for_lap(lap):
+def top_speeds_by_lap(laps):
+    """Map (driver, lap_number) to the lap's top speed.
+
+    Scans each driver's session car data once instead of slicing it per lap
+    via ``Lap.get_car_data()``, which dominated request time. Lap windows are
+    the same closed [LapStartTime, Time] interval FastF1 uses when slicing.
+    """
+    speeds = {}
     try:
-        car_data = lap.get_car_data()
-        if car_data.empty or "Speed" not in car_data:
-            return None
-        return value_or_none(car_data["Speed"].max())
+        car_data = laps.session.car_data
     except Exception:
-        return None
+        return speeds
+
+    required = {"Driver", "DriverNumber", "LapNumber", "LapStartTime", "Time"}
+    if not required.issubset(laps.columns):
+        return speeds
+
+    for driver_number, driver_laps in laps.groupby("DriverNumber"):
+        data = car_data.get(str(driver_number))
+        if data is None or data.empty or not {"SessionTime", "Speed"}.issubset(data.columns):
+            continue
+        data = data.dropna(subset=["SessionTime"]).sort_values("SessionTime")
+        times = data["SessionTime"].to_numpy()
+        values = data["Speed"].to_numpy()
+
+        windows = driver_laps.dropna(subset=["LapStartTime", "Time"])
+        starts = np.searchsorted(times, windows["LapStartTime"].to_numpy(), side="left")
+        ends = np.searchsorted(times, windows["Time"].to_numpy(), side="right")
+        for driver, lap_number, start, end in zip(windows["Driver"], windows["LapNumber"], starts, ends):
+            if end > start:
+                speeds[(driver, lap_number)] = value_or_none(np.nanmax(values[start:end]))
+
+    return speeds
+
+
+def lap_top_speed(lap, speeds):
+    return speeds.get((lap.get("Driver"), lap.get("LapNumber")))
 
 
 def driver_fastest_seconds(laps, driver):
@@ -121,7 +150,8 @@ def driver_fastest_seconds(laps, driver):
     return seconds_or_none(fastest)
 
 
-def fastest_laps(laps):
+def fastest_laps(laps, speeds=None):
+    speeds = top_speeds_by_lap(laps) if speeds is None else speeds
     summaries = []
 
     for driver in sorted(laps["Driver"].dropna().unique()):
@@ -133,7 +163,7 @@ def fastest_laps(laps):
         if fastest is None or pd.isna(fastest.get("LapTime")):
             continue
 
-        summaries.append(lap_summary(fastest, top_speed_for_lap(fastest)))
+        summaries.append(lap_summary(fastest, lap_top_speed(fastest, speeds)))
 
     summaries = sorted(summaries, key=lambda item: item["lap_time_seconds"])
     if not summaries:
@@ -147,28 +177,21 @@ def fastest_laps(laps):
     return summaries
 
 
-def top_speeds(laps):
-    speeds = []
+def top_speeds(laps, speeds=None):
+    speeds = top_speeds_by_lap(laps) if speeds is None else speeds
+    timed = valid_timed_laps(laps)
+    best = {}
 
-    for driver in sorted(laps["Driver"].dropna().unique()):
-        best_speed = None
-        best_lap_number = None
-        for _, lap in valid_timed_laps(laps.pick_drivers(driver)).iterlaps():
-            lap_speed = top_speed_for_lap(lap)
-            if lap_speed is not None and (best_speed is None or lap_speed > best_speed):
-                best_speed = lap_speed
-                best_lap_number = value_or_none(lap.get("LapNumber"))
+    for driver, lap_number in zip(timed["Driver"], timed["LapNumber"]):
+        lap_speed = speeds.get((driver, lap_number))
+        if lap_speed is not None and (driver not in best or lap_speed > best[driver]["top_speed"]):
+            best[driver] = {
+                "driver": driver,
+                "top_speed": lap_speed,
+                "lap_number": value_or_none(lap_number),
+            }
 
-        if best_speed is not None:
-            speeds.append(
-                {
-                    "driver": driver,
-                    "top_speed": best_speed,
-                    "lap_number": best_lap_number,
-                }
-            )
-
-    return sorted(speeds, key=lambda item: item["top_speed"], reverse=True)
+    return sorted(best.values(), key=lambda item: item["top_speed"], reverse=True)
 
 
 def tyre_summary(laps):
@@ -320,13 +343,14 @@ def long_run_overview(laps, drivers=None, min_laps=LONG_RUN_MIN_LAPS):
 def driver_laps(laps, driver):
     driver_all_laps = laps.pick_drivers(driver).sort_values("LapNumber")
     fastest_seconds = driver_fastest_seconds(laps, driver)
+    speeds = top_speeds_by_lap(driver_all_laps)
     summaries = []
 
     for _, lap in driver_all_laps.iterlaps():
         summaries.append(
             lap_summary(
                 lap,
-                top_speed=top_speed_for_lap(lap),
+                top_speed=lap_top_speed(lap, speeds),
                 driver_fastest_seconds=fastest_seconds,
             )
         )

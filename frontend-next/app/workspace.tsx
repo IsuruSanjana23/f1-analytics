@@ -35,7 +35,7 @@ async function fetchJson<T>(url: string, timeoutMs = 30000): Promise<T> {
   try {
     const response = await fetch(url, { signal: controller.signal });
     const data = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(data?.detail || "Data service unavailable");
+    if (!response.ok) throw new Error(typeof data?.detail === "string" ? data.detail : "Data service unavailable");
     return data as T;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {

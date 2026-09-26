@@ -1,9 +1,14 @@
+import threading
+from collections import defaultdict
 from datetime import datetime
 from functools import lru_cache
 
 import fastf1
+import pandas as pd
+from fastf1.exceptions import DataNotLoadedError, NoLapDataError
 
-from backend.core.config import CACHE_DIR, DEFAULT_START_YEAR
+from backend.core.config import CACHE_DIR, DEFAULT_START_YEAR, SESSION_CACHE_SIZE
+from backend.core.errors import DataUnavailableError, InvalidRequestError, NotFoundError
 from backend.utils.formatting import value_or_none
 
 
@@ -24,6 +29,10 @@ SESSION_ALIASES = {
     "race": "R",
     "r": "R",
 }
+SESSION_KEYS = {"FP1", "FP2", "FP3", "SS", "SQ", "S", "Q", "R"}
+
+_session_locks = defaultdict(threading.Lock)
+_session_locks_guard = threading.Lock()
 
 
 def configure_fastf1():
@@ -41,9 +50,26 @@ def get_available_seasons():
     return list(range(current_year, DEFAULT_START_YEAR - 1, -1))
 
 
+def validate_year(year):
+    seasons = get_available_seasons()
+    if year not in seasons:
+        raise InvalidRequestError(f"Season must be between {seasons[-1]} and {seasons[0]}")
+
+
+def validate_session_name(session_name):
+    normalized = normalize_session_name(session_name)
+    if normalized not in SESSION_KEYS:
+        raise InvalidRequestError(f"Unknown session '{session_name}'")
+    return normalized
+
+
 def get_races(year):
+    validate_year(year)
     configure_fastf1()
-    schedule = fastf1.get_event_schedule(year)
+    try:
+        schedule = fastf1.get_event_schedule(year)
+    except Exception as error:
+        raise DataUnavailableError(f"Schedule for {year} is temporarily unavailable") from error
     races = []
 
     for _, event in schedule.iterrows():
@@ -66,8 +92,16 @@ def get_races(year):
 
 
 def get_sessions(year, race):
+    validate_year(year)
     configure_fastf1()
-    event = fastf1.get_event(year, race)
+    try:
+        event = fastf1.get_event(year, race)
+    except ValueError as error:
+        raise NotFoundError(f"No event '{race}' found in {year}") from error
+    except Exception as error:
+        raise DataUnavailableError(f"Schedule for {year} is temporarily unavailable") from error
+    if event is None:
+        raise NotFoundError(f"No event '{race}' found in {year}")
     sessions = []
 
     for index in range(1, 6):
@@ -97,20 +131,55 @@ def session_type(session_name):
     return "unknown"
 
 
-@lru_cache(maxsize=16)
+@lru_cache(maxsize=SESSION_CACHE_SIZE)
 def _load_session_cached(year, race, normalized_session):
     configure_fastf1()
-    session = fastf1.get_session(year, race, normalized_session)
+    try:
+        session = fastf1.get_session(year, race, normalized_session)
+    except ValueError as error:
+        raise NotFoundError(f"No {normalized_session} session found for {race} {year}") from error
+    except Exception as error:
+        raise DataUnavailableError("F1 timing data is temporarily unavailable") from error
+
     # Always load the full superset (laps + telemetry + weather) so every
-    # caller, regardless of what it asked for, can share this one cached
-    # Session object instead of triggering its own reparse of the session.
-    session.load(laps=True, telemetry=True, weather=True, messages=False)
+    # caller can share this one cached Session object instead of triggering
+    # its own reparse of the session.
+    try:
+        session.load(laps=True, telemetry=True, weather=True, messages=False)
+        session.laps  # FastF1 logs load failures and only raises on access.
+    except NoLapDataError as error:
+        raise NotFoundError(f"No lap data available for {race} {year} {normalized_session}") from error
+    except DataNotLoadedError as error:
+        if session_not_started(session):
+            raise NotFoundError(f"{race} {year} {normalized_session} has not taken place yet") from error
+        # Raising keeps lru_cache from pinning a half-loaded session.
+        raise DataUnavailableError("F1 timing data is temporarily unavailable") from error
+    except Exception as error:
+        raise DataUnavailableError("F1 timing data is temporarily unavailable") from error
     return session
 
 
-def load_session(year, race, session_name, telemetry=False, weather=True):
-    normalized_session = normalize_session_name(session_name)
-    return _load_session_cached(year, race, normalized_session)
+def session_not_started(session):
+    try:
+        start = pd.Timestamp(session.date)
+    except Exception:
+        return False
+    if pd.isna(start):
+        return False
+    # FastF1 session dates are naive UTC.
+    now = pd.Timestamp.now(tz="UTC")
+    return start > (now if start.tz else now.tz_localize(None))
+
+
+def load_session(year, race, session_name):
+    validate_year(year)
+    key = (year, race, validate_session_name(session_name))
+    # lru_cache does not stop concurrent misses for the same key from each
+    # running the multi-second load, so serialise loads per session.
+    with _session_locks_guard:
+        lock = _session_locks[key]
+    with lock:
+        return _load_session_cached(*key)
 
 
 def event_summary(session):
