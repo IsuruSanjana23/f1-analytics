@@ -1,0 +1,123 @@
+/* Responsive telemetry canvas: prevent fixed-height SVG letterboxing. */
+.dedicated-telemetry .telemetry-analysis-grid {
+  grid-template-columns: minmax(280px, 0.24fr) minmax(0, 1fr);
+  gap: 18px;
+  margin: 18px 24px 0;
+}
+
+.dedicated-telemetry .telemetry-analysis-grid .track-map-panel,
+.dedicated-telemetry .telemetry-analysis-grid .trace-channel,
+.dedicated-telemetry .telemetry-analysis-grid .delta-channel {
+  margin: 0;
+  min-height: 0;
+}
+
+html .dedicated-telemetry .trace-channel > svg {
+  width: 100%;
+  height: auto !important;
+  min-height: 0;
+  aspect-ratio: 9 / 2;
+}
+
+html .dedicated-telemetry .delta-channel > svg {
+  width: 100%;
+  height: auto !important;
+  min-height: 0;
+  aspect-ratio: 900 / 112;
+}
+
+.dedicated-telemetry .trace-channel-head,
+.dedicated-telemetry .delta-channel .trace-channel-head {
+  min-height: 50px;
+  padding: 18px 22px 10px;
+}
+
+.dedicated-telemetry .trace-channel-head strong,
+.dedicated-telemetry .delta-channel .trace-channel-head strong {
+  font: 700 16px/1.1 Arial, Helvetica, sans-serif;
+  letter-spacing: 0.025em !important;
+}
+
+.dedicated-telemetry .trace-channel-head strong small,
+.dedicated-telemetry .delta-channel .trace-channel-head strong small {
+  margin-top: 6px;
+  color: #aeb9c6;
+  font: 500 13px/1.2 Arial, Helvetica, sans-serif;
+}
+
+.dedicated-telemetry .trace-channel-head > div {
+  font: 600 12px ui-monospace, Consolas, monospace;
+}
+
+.dedicated-telemetry .trace-channel text,
+.dedicated-telemetry .delta-channel text {
+  fill: #d1dbe3;
+  font: 11px ui-monospace, Consolas, monospace;
+}
+
+.dedicated-telemetry .telemetry-context {
+  order: 0;
+  min-height: 54px;
+  margin: 0;
+  border-top: 0;
+  border-bottom: 1px solid #29323d;
+  background: #0c1016;
+}
+
+html .dedicated-telemetry .difference-controls {
+  order: 0 !important;
+}
+
+html .dedicated-telemetry .telemetry-analysis-grid {
+  order: 1 !important;
+}
+
+.dedicated-telemetry .zoom-hint {
+  top: 19px;
+  right: 24px;
+  font-size: 12px;
+}
+
+@media (max-width: 1050px) {
+  .dedicated-telemetry .telemetry-analysis-grid {
+    display: block;
+    margin: 14px 16px 0;
+  }
+
+  .dedicated-telemetry .track-map-panel,
+  .dedicated-telemetry .trace-channel,
+  .dedicated-telemetry .delta-channel {
+    margin-bottom: 14px !important;
+  }
+
+}
+
+@media (max-width: 760px) {
+  .dedicated-telemetry .telemetry-analysis-grid {
+    margin: 10px 8px 0;
+  }
+
+  .dedicated-telemetry .trace-channel-head,
+  .dedicated-telemetry .delta-channel .trace-channel-head {
+    min-height: 42px;
+    padding: 14px 14px 8px;
+  }
+
+  .dedicated-telemetry .trace-channel-head strong,
+  .dedicated-telemetry .delta-channel .trace-channel-head strong {
+    font-size: 14px;
+  }
+
+  .dedicated-telemetry .trace-channel-head strong small,
+  .dedicated-telemetry .delta-channel .trace-channel-head strong small {
+    font-size: 11px;
+  }
+
+  .dedicated-telemetry .trace-channel > svg {
+    aspect-ratio: 3 / 1;
+  }
+
+  .dedicated-telemetry .delta-channel > svg {
+    aspect-ratio: 5 / 1;
+  }
+}

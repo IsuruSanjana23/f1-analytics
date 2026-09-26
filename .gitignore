@@ -1,0 +1,9 @@
+.venv/
+node_modules/
+frontend-next/.next/
+cache/
+__pycache__/
+*.py[cod]
+.tmp-f1db/
+*.log
+*.tsbuildinfo

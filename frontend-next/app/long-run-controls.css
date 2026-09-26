@@ -1,0 +1,170 @@
+.longrun-group-actions,
+.run-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.longrun-group-actions button,
+.remove-run {
+  border: 1px solid #3b4858;
+  background: #111923;
+  color: #b8c3ce;
+  cursor: pointer;
+  font: 600 10px ui-monospace, Consolas, monospace;
+  text-transform: uppercase;
+}
+
+.longrun-group-actions button {
+  padding: 6px 8px;
+}
+
+.longrun-group-actions button:hover {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+.remove-run {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  padding: 0;
+  color: #ff8c9a;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.remove-run:hover {
+  border-color: #ff6478;
+  background: #2a1820;
+  color: #ff9daa;
+}
+
+/* Long Runs only: a focused table workspace without changing shared table styling. */
+.longrun-workspace {
+  display: grid;
+  gap: 16px;
+}
+
+.longrun-view-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+}
+
+.longrun-view-controls .kicker {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.longrun-view-controls .longrun-filter {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.longrun-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 16px;
+  align-items: start;
+}
+
+.longrun-tables {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.compound-run-group {
+  overflow: hidden;
+}
+
+.compound-run-group > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.compound-run-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.compound-run-heading h3 {
+  white-space: nowrap;
+}
+
+.longrun-summary-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.longrun-summary-panel section {
+  padding: 14px;
+  border: 1px solid var(--line);
+}
+
+.longrun-summary-panel h3 {
+  margin: 6px 0 14px;
+  font-size: 15px;
+}
+
+.longrun-summary-panel dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.longrun-summary-panel dl div,
+.summary-tyre-order li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  border-top: 1px solid var(--line);
+}
+
+.longrun-summary-panel dt,
+.longrun-summary-panel dd {
+  margin: 0;
+  font: 600 10px ui-monospace, Consolas, monospace;
+}
+
+.summary-tyre-order {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary-tyre-order li b { min-width: 16px; }
+.summary-tyre-order li span { margin-right: auto; }
+.summary-tyre-order li strong { font: 600 11px ui-monospace, Consolas, monospace; }
+
+@media (max-width: 1120px) {
+  .longrun-content-grid { grid-template-columns: 1fr; }
+  .longrun-summary-panel { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 760px) {
+  .longrun-group-actions { align-items: flex-start; }
+  .longrun-view-controls { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .longrun-view-controls .longrun-filter { flex-wrap: wrap; }
+  .compound-run-group > header { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .compound-run-heading h3 { white-space: normal; }
+  .longrun-summary-panel { grid-template-columns: 1fr; }
+}
